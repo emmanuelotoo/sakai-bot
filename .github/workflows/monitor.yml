@@ -5,14 +5,16 @@
 
 name: Sakai Monitor
 
+# TEMPORARILY DISABLED - Uncomment schedule when secrets are configured
+# Required secrets: SAKAI_USERNAME, SAKAI_PASSWORD, WHATSAPP_*, SUPABASE_*
+
 on:
-  # Run on schedule (cron)
-  schedule:
-    # Run every 2 hours during typical university hours (Ghana time = UTC)
-    # Adjust the schedule based on your needs
-    - cron: '0 6,8,10,12,14,16,18,20 * * *'  # Every 2 hours, 6 AM to 8 PM UTC
+  # Schedule disabled until secrets are added
+  # schedule:
+  #   # Run every 2 hours during typical university hours (Ghana time = UTC)
+  #   - cron: '0 6,8,10,12,14,16,18,20 * * *'  # Every 2 hours, 6 AM to 8 PM UTC
   
-  # Allow manual trigger
+  # Manual trigger only - use this to test after adding secrets
   workflow_dispatch:
     inputs:
       debug:
