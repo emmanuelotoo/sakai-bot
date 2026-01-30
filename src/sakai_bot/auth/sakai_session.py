@@ -138,19 +138,28 @@ class SakaiSession:
             # Extract any CSRF token
             csrf_token = self._extract_csrf_token(response.text)
             
+            # Extract the actual form action URL from the page
+            soup = BeautifulSoup(response.text, "lxml")
+            form = soup.find("form")
+            form_action = login_page_url  # default
+            if form and form.get("action"):
+                form_action = form["action"]
+                if not form_action.startswith("http"):
+                    form_action = self._get_url(form_action)
+            
             # Step 2: Prepare login form data
             login_data = {
                 "eid": self.settings.sakai_username,
                 "pw": self.settings.sakai_password,
-                "submit": "Log In",
+                "submit": "Log in",  # Match exactly what the form uses
             }
             
             if csrf_token:
                 login_data["sakai_csrf_token"] = csrf_token
             
-            # Step 3: POST login credentials
+            # Step 3: POST login credentials to the form action URL
             response = self.session.post(
-                login_page_url,
+                form_action,
                 data=login_data,
                 timeout=30,
                 allow_redirects=True,

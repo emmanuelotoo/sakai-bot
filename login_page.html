@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="" dir="" class="Mrphs-html">
+    <head>
+        <meta charset="utf-8">
+        <title>Login Required - UG Sakai</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">        
+        <link href="/library/skin/default-skin/tool.css" type="text/css" rel="stylesheet" media="all" />
+        <script src="/library/js/modernizr.js"></script>
+        <script src="/library/js/headscripts.js"></script>
+ 
+    </head>
+    <body class="portalBody Mrphs-portalBody">
+        <div id="sakai-login-dialog" class="modal position-static d-block">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header justify-content-center">
+                        <h2 class="modal-title">Log in</h2>
+                        <!--Close button is hidden by default, but made visible through js when loaded into modal-->
+                        <button type="button" class="d-none btn-close" data-bs-dismiss="modal" aria-label="___i18n___Close"></button>
+                    </div>
+                    <aside id="xlogin-logo" class="bg-primary mb-3 py-2 px-2 text-center">
+                        <img src="/library/skin/default-skin/images/sakaiLogo.png" alt="UG Sakai" class="portal-header-logo">
+                    </aside>
+                    <div class="modal-body">
+
+                        
+                        <form action="https://sakai.ug.edu.gh/portal/relogin"method="post" class="px-3">
+                            <label for="eid" class="form-label">Student ID / Staff ID</label>
+                            <input id="eid" name="eid" value="" type="text" class="form-control mb-2 " autocomplete="username">
+                            
+                            <label for="pw" class="form-label">Password</label>
+                            <div class="input-group mb-3 password-field">
+                                <input id="pw" name="pw" value="" type="password" class="form-control " autocomplete="current-password"></input>
+
+                                <input type="checkbox" class="btn-check" id="showPw" autocomplete="off">
+                                <label class="input-group-text" for="showPw">
+                                    <i class="bi bi-eye-slash-fill" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Show Password</span>
+                                </label>
+                            </div>
+                            <div class="d-flex gap-2 mb-2">
+                                <input name="submit" type="submit" id="submit" class="btn btn-primary btn-lg flex-grow-1" value="Log in"/>
+                                                            </div>
+                        </form>
+
+                                                    <div class="text-end px-3 py-2">
+                                <a href="https://sakai.ug.edu.gh/portal/site/!gateway/page/!gateway-700" class="text-end right">Forgot your UG Sakai LMS password?</a>
+                            </div>
+                                            </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="/library/js/portal/portal.login.password.js"></script>
+        <script src="/library/js/portal/portal.login.mobile.js"></script>
+        <script>
+            //Setup show/hide and capslock functionality 
+            const passwordField = new PasswordField(document.querySelector(".password-field"), {
+                icons: {
+                    hidden: "bi-eye-slash-fill",
+                    shown:"bi-eye-fill",
+                    capsLock: "bi-capslock-fill"
+                }
+            });
+
+            //Add an on-load listener to focus the password field
+            window.addEventListener("load", () => document.querySelector("#eid")?.focus());
+
+            // Remove the the error class from the form fields when the user starts typing
+            const formFields = document.querySelectorAll(".form-control");
+            const removeInvalid = el => formFields.forEach(el => el.classList.remove("is-invalid"));
+            formFields.forEach(input => {
+            
+                input.addEventListener("input", removeInvalid, {once: true});
+                input.addEventListener("click", removeInvalid, {once: true});
+            });
+            
+        </script>
+
+                <script>
+            var portal = {};
+            var needJQuery   = true;
+            var secondJQuery = false;
+            if ( window.jQuery ) {
+                tver = jQuery.fn.jquery;
+                if ( tver.indexOf('1.9.') == 0 ) {
+                    needJQuery = false;
+                } else {
+                    secondJQuery = true;
+                }
+            }
+            if ( needJQuery ) {
+                document.write('\x3Cscript src="/library/webjars/jquery/1.12.4/jquery.min.js">'+'\x3C/script>')
+                document.write('\x3Cscript src="/library/webjars/jquery-ui/1.12.1/jquery-ui.min.js">'+'\x3C/script>')
+                document.write('\x3Cscript src="/library/webjars/jquery-migrate/1.4.1/jquery-migrate.min.js">'+'\x3C/script>')
+            }
+        </script>
+        <script>
+            $PBJQ = jQuery; // The Portal's jQuery (also in $ for now)
+        </script>
+        <script src="/library/js/sakai.scripts.min.js"></script>
+    </body>
+</html>

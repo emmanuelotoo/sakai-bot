@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html class="Mrphs-html sakaiUserTheme-notSet" dir="ltr" lang="en-US">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+  <link href="/manifest.json" rel="manifest"/>
+  <script>
+   var portal = {
+                "i18n": {
+                    "theme_switch_to_light": "Switch to Light Mode",
+                    "theme_switch_to_dark": "Switch to Dark Mode",
+                },
+                "loggedIn": false,
+                "portalPath": "/portal",
+                "loggedOutUrl": "https://sakai.ug.edu.gh/portal",
+                "siteId": "!error",
+                "toolsCollapsed":  false ,
+                "locale": "en-US" || "en-US",
+                "serverTimeMillis": "1769812363255",
+                "user": {
+                    "id": "",
+                    "eid": "",
+                    "userType": "",
+                    "siteRole": "",
+                    "impersonatorDisplayId": "",
+                    "timezone": "Africa/Accra",
+                    "offsetFromServerMillis": "0"
+                },
+                "timeoutDialog" : {
+                "enabled": true,
+                "seconds": 300
+                },
+                "pageScriptPath" : "/library/js/",
+                "editor" : {
+                    "type": "",
+                },
+                "portalCDNQuery" : "?version=UG Sakai",
+                "sakaiSkin" : "default-skin",
+                "userTheme" : "sakaiUserTheme-notSet",
+                                "userThemeAutoDetectDark" : true,
+                                "mathJaxConfig" : {
+                    "format" : ["LaTeX",]
+                },
+                toolTitles : {"sakai.iframe.site": "Site Unavailable",},
+            };
+  </script>
+  <script src="/webcomponents/bundles/base.js?version=UG Sakai" type="module">
+  </script>
+  <title>
+   UG Sakai : Site Unavailable : Site Unavailable
+  </title>
+  <link href="/library/skin/default-skin/tool.css?version=UG Sakai" media="screen, tty, tv, handheld, projection" rel="stylesheet"/>
+  <link href="/library/skin/default-skin/print.css?version=UG Sakai" media="print" rel="stylesheet"/>
+  <link href="/library/webjars/jquery-ui/1.12.1/jquery-ui.min.css?version=UG Sakai" rel="stylesheet"/>
+  <link href="/library/js/jquery/cluetip/1.2.10/css/jquery.cluetip.css?version=UG Sakai" rel="stylesheet"/>
+  <link href="/library/webjars/qtip2/3.0.3-1/jquery.qtip.min.css?version=UG Sakai" rel="stylesheet"/>
+  <link href="/library/webjars/cropper/4.1.0/dist/cropper.min.css?version=UG Sakai" rel="stylesheet"/>
+  <script src="/library/js/modernizr.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/BreakpointManager.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/sakai-lti-advantage.js?version=UG Sakai">
+  </script>
+  <script src="/library/webjars/momentjs/2.29.4/min/moment-with-locales.min.js?version=UG Sakai">
+  </script>
+  <script src="/library/webjars/popper.js/2.9.3/umd/popper.min.js?version=UG Sakai">
+  </script>
+  <script src="/library/webjars/bootstrap/5.2.0/js/bootstrap.min.js?version=UG Sakai">
+  </script>
+  <script src="/library/webjars/dompurify/2.3.6/dist/purify.min.js?version=UG Sakai">
+  </script>
+  <script src="/vuecomponents/js/sakai.min.js?version=UG Sakai" type="module">
+  </script>
+  <script src="/library/js/trimpath-template-latest.js?version=UG Sakai">
+  </script>
+  <script>
+   moment.locale(window.portal.locale);
+  </script>
+  <script src="/library/js/portal/portal.sidebar.sites.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/portal/portal.sidebar.collapse.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/portal/portal.serverinfo.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/portal/portal.login.password.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/portal/portal.login.mobile.js?version=UG Sakai">
+  </script>
+  <script src="/profile2-tool/javascript/profile2-eb.js?version=UG Sakai">
+  </script>
+  <!-- inlined tool header contribution -->
+  <!-- end inlined tool header contribution -->
+  <link href="/library/icon/favicon.ico" rel="icon" type="image/x-icon"/>
+ </head>
+ <body>
+  <noscript>
+   <span class="Mrphs-noJs js-warn-no-js" id="portal_js_warn">
+    Sakai works much better when JavaScript is enabled. Please enable JavaScript in your Browser.
+   </span>
+  </noscript>
+  <script src="/library/js/headscripts.js?version=UG Sakai" type="text/javascript">
+  </script>
+  <script type="text/javascript">
+   var sakai = sakai || {}; sakai.editor = sakai.editor || {}; sakai.editor.editors = sakai.editor.editors || {}; sakai.editor.editors.ckeditor = sakai.editor.editors.ckeditor || {}; sakai.locale = sakai.locale || {};
+sakai.locale.userCountry = 'US';
+sakai.locale.userLanguage = 'en';
+sakai.locale.userLocale = 'en_US';
+sakai.editor.collectionId = '/user/null/';
+sakai.editor.enableResourceSearch = false;
+sakai.editor.contentItemUrl = false;
+sakai.editor.siteToolSkin = '/library/skin/default-skin/tool.css';
+sakai.editor.sitePrintSkin = '/library/skin/default-skin/print.css';
+sakai.editor.sitePropertiesSkin = '/library/skin/default-skin/properties.css';
+sakai.editor.editors.ckeditor.browser = 'elfinder';
+  </script>
+  <script type="text/javascript">
+   var CKEDITOR_BASEPATH='/library/webjars/ckeditor4/4.22.1/';
+  </script>
+  <script src="/library/webjars/ckeditor4/4.22.1/ckeditor.js?version=UG Sakai" type="text/javascript">
+  </script>
+  <script src="/library/editor/ckeditor.launch.js?version=UG Sakai" type="text/javascript">
+  </script>
+  <noscript class="d-block text-center p-5 vh-100">
+   <div class="alert alert-danger js-warn-no-js shadow-lg">
+    Sakai works much better when JavaScript is enabled. Please enable JavaScript in your Browser.
+   </div>
+  </noscript>
+  <div class="Mrphs-portalWrapper vh-100 portal-container" id="pageBody" tabindex="0">
+   <div class="portal-pasystem">
+   </div>
+   <nav aria-label="Skip link navigation" class="Mrphs-skipNav" id="skipNav">
+    <ul class="Mrphs-skipNav__menu">
+     <li class="Mrphs-skipNav__menuitem Mrphs-skipNav__menuitem--content">
+      <a accesskey="c" class="Mrphs-skipNav__link" href="#tocontent" title="jump to content">
+       jump to content
+       <span class="accesibility_key">
+        [c]
+       </span>
+      </a>
+     </li>
+     <li class="Mrphs-skipNav__menuitem Mrphs-skipNav__menuitem--tools">
+      <a accesskey="l" class="Mrphs-skipNav__link js-toggle-sites-nav" href="#totoolmenu" id="totool" title="jump to tools list">
+       <i aria-hidden="true" class="si si-sakai-sites">
+       </i>
+       Tools
+       <span class="accesibility_key">
+        [l]
+       </span>
+      </a>
+      <a class="xs-visible Mrphs-skipNav--toolName" href="https://sakai.ug.edu.gh/portal/site/!error/page-reset/!error-100" title="Tool Home">
+       <span class="Mrphs-breadcrumb--icon icon-sakai--sakai-iframe-site">
+       </span>
+       <span>
+        Site Unavailable
+       </span>
+      </a>
+     </li>
+    </ul>
+   </nav>
+   <script>
+    window.addEventListener("load", function() {
+
+        document.getElementById("totool").addEventListener("click", function() {
+
+            document.querySelector(".nav-item").focus();
+        });
+    });
+   </script>
+   <header class="portal-header d-flex align-items-center justify-content-between" role="banner">
+    <div class="d-flex align-items-center h-100 ms-3 ms-md-0">
+     <div class="portal-header-logo d-flex h-100 align-items-center" id="logoWrapper">
+      <button aria-controls="portal-nav-sidebar" class="btn icon-button btn-sidebar-collapse portal-header-hamburger-button me-1 ms-3 d-none d-md-block" data-bs-placement="bottom" data-bs-toggle="tooltip" data-portal-sidebar-collapsed="" id="sidebar-collapse-button" title="Collapse sidebar" type="button">
+       <span aria-hidden="true" class="bi portal-nav-sidebar-icon">
+       </span>
+      </button>
+      <a class="btn btn-logo mx-2 ms-md-0" href="/portal" title="Home page">
+       <span class="visually-hidden">
+        Home page
+       </span>
+      </a>
+     </div>
+     <nav aria-label="Sites list begins here" class="Mrphs-sitesNav" data-max-tools-anchor="Go to the site to view all" data-max-tools-int="10" id="linkNav">
+      <div id="topnav_container">
+       <ul class="Mrphs-sitesNav__menu" id="topnav">
+       </ul>
+      </div>
+     </nav>
+     <!-- /Mrphs-sitesNav -->
+    </div>
+    <a class="sak-sysInd-systemAlerts nav-link d-none align-items-center text-white me-auto" href="#" onclick="alert('Somehow we will get the dismissed PA System alert to re-appear');">
+     <svg class="bi bi-exclamation-diamond me-1 text-warning" fill="currentColor" height="24" viewbox="0 0 16 16" width="24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6.95.435c.58-.58 1.52-.58 2.1 0l6.515 6.516c.58.58.58 1.519 0 2.098L9.05 15.565c-.58.58-1.519.58-2.098 0L.435 9.05a1.482 1.482 0 0 1 0-2.098L6.95.435zm1.4.7a.495.495 0 0 0-.7 0L1.134 7.65a.495.495 0 0 0 0 .7l6.516 6.516a.495.495 0 0 0 .7 0l6.516-6.516a.495.495 0 0 0 0-.7L8.35 1.134z">
+      </path>
+      <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z">
+      </path>
+     </svg>
+     <span class="d-none d-md-inline">
+      View System Alert
+     </span>
+    </a>
+    <form action="/portal/xlogin" class="d-none d-md-flex gap-2 ms-4 me-2" enctype="application/x-www-form-urlencoded" id="loginForm" method="post">
+     <div class="form-floating my-1">
+      <input autocomplete="username" class="form-control focus-light" id="eid" name="eid" placeholder="Student ID / Staff ID" type="text"/>
+      <label for="eid">
+       Student ID / Staff ID
+      </label>
+     </div>
+     <div class="input-group password-field w-auto my-1">
+      <div class="form-floating">
+       <input autocomplete="current-password" class="form-control focus-light" id="pw" name="pw" placeholder="Password" type="password"/>
+       <label for="pw">
+        Password
+       </label>
+      </div>
+      <input autocomplete="off" class="btn-check" id="showPwTop" type="checkbox"/>
+      <label class="input-group-text" for="showPwTop">
+       <span aria-hidden="true" class="bi bi-eye-slash-fill">
+       </span>
+       <span class="visually-hidden">
+        Show Password
+       </span>
+      </label>
+     </div>
+     <button class="btn btn-outline p-3 my-1" type="submit">
+      Login
+     </button>
+    </form>
+    <button class="d-md-none btn btn-primary mb-1 my-1 ms-2 me-4" id="mobileLoginBtn">
+     Login
+    </button>
+   </header>
+   <!-- START VM includeSiteNav.vm -->
+   <aside aria-labelledby="" class="d-none portal-nav-sidebar overflow-auto" data-bs-backdrop="true" id="portal-nav-sidebar" tabindex="-1">
+    <div class="offcanvas-header d-md-none">
+     <h2 class="offcanvas-title">
+      Sites
+     </h2>
+     <button aria-label="Close the sites sidebar" class="btn-close text-reset ms-auto" data-bs-dismiss="offcanvas" type="button">
+     </button>
+    </div>
+    <nav aria-label="Tools list begins here" class="Mrphs-toolsNav__menu sakai-sitesAndToolsNav h-100 d-flex flex-column" id="toolMenu" role="navigation">
+     <h2 class="visually-hidden d-none d-md-block" id="totoolmenu">
+      Sites
+     </h2>
+     <div class="sites-section">
+      <h3 class="visually-hidden sites-section-heading">
+       Current site
+      </h3>
+      <ul class="pt-2 mb-0">
+       <li class="site-list-item py-1 px-2 mx-3 mt-3 is-current-site fw-bold" data-site="!error" data-type="gateway" id="site-list-gateway-item-error">
+        <div class="site-list-item-head d-flex align-items-center py-1 w-100 justify-content-between">
+         <div class="site-link-block d-flex align-items-center rounded-end me-1 pe-2">
+          <button aria-controls="gateway-site-error-page-list" aria-expanded="true" class="btn icon-button collapsed px-2 me-1" data-bs-target="#gateway-site-error-page-list" data-bs-toggle="collapse" data-site-id="!error" title="Collapse tool list">
+           <i aria-hidden="true" class="bi bi-chevron-right">
+           </i>
+          </button>
+          <a class="sidebar-site-title" href="https://sakai.ug.edu.gh/portal/site/!error" title="Site Unavailable">
+           Site Unavailable
+          </a>
+         </div>
+        </div>
+        <div class="site-list-item-collapse collapse show" data-site-id="!error" id="gateway-site-error-page-list">
+         <ul class="site-page-list nav flex-column py-2">
+          <li class="nav-item ms-4">
+           <a class="btn btn-nav w-100 ps-3 selected-page" data-page-id="!error-100" href="https://sakai.ug.edu.gh/portal/site/!error/tool-reset/!error-110" title="Site Unavailable: For displaying the site's description">
+            <div class="d-flex text-start align-items-center">
+             <div class="d-flex me-auto rounded-end">
+              <span aria-hidden="true" class="me-1 si si-sakai-iframe-site">
+              </span>
+              <span class="me-2">
+               Site Unavailable
+              </span>
+             </div>
+             <div>
+             </div>
+            </div>
+           </a>
+          </li>
+         </ul>
+        </div>
+       </li>
+      </ul>
+     </div>
+    </nav>
+   </aside>
+   <script>
+    // focus the current site on load and prepare site description popovers
+    var previousSiteTitle = null;
+    const observerToolMenu = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList' && previousSiteTitle === null) {
+                const currentSiteElement = document.querySelector('.is-current-site');
+                const toolMenu = document.getElementById('toolMenu');
+                if (!toolMenu) return;
+                const listItems = Array.from(toolMenu.querySelectorAll('li.site-list-item'));
+                const currentIndex = listItems.indexOf(currentSiteElement.closest('li'));
+                const previousLi = currentIndex > 0 ? listItems[currentIndex - 1] : null;
+                if (previousLi) {
+                    previousSiteTitle = previousLi.querySelector('.sidebar-site-title');
+                    if (previousSiteTitle) {
+                        const rect = previousSiteTitle.getBoundingClientRect();
+                        previousSiteTitle.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    }
+                }
+            }
+            else if (previousSiteTitle !== null) {
+                previousSiteTitle.scrollIntoView({ behavior: 'auto', block: 'start' });
+            }
+        });
+    });
+    observerToolMenu.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('load', () => {
+        observerToolMenu.disconnect();
+        // put the focus back on the portal wrapper so that keyboard navigation works
+        setTimeout(function() {
+            // Preserve focus on login fields if they're currently active
+            if (!["eid", "pw"].includes(document.activeElement?.id)) {
+                document.querySelector('.Mrphs-portalWrapper').focus();
+            }
+        }, 50);
+
+        [...document.querySelectorAll('[data-bs-toggle="popover"]')].forEach((el) => {
+            let opts = {
+                animation: false,
+            };
+            if (el.hasAttribute('data-bs-content-id')) {
+	        opts.content = document.getElementById(el.getAttribute('data-bs-content-id')).innerHTML;
+	        opts.html = true;
+                new bootstrap.Popover(el, opts);
+            }
+        })
+    });
+   </script>
+   <!-- END VM includeSiteNav.vm -->
+   <!-- START VM includePage.vm -->
+   <div class="portal-main-container container-fluid pt-4">
+    <main class="portal-main-content px-3" id="content" role="main" tabindex="-1">
+     <h1 class="skip visually-hidden" id="tocontent" tabindex="-1">
+      Content begins here
+     </h1>
+     <div class="Mrphs-pageColumns Mrphs-pageColumns--single" id="col1">
+      <!-- start Tool Container -->
+      <div class="Mrphs-container Mrphs-sakai-iframe-site">
+       <!-- start Tool Header -->
+       <nav aria-label="Tool navigation" class="Mrphs-toolTitleNav Mrphs-container--toolTitleNav align-items-center">
+        <h2 class="Mrphs-toolTitleNav__title">
+         <span class="Mrphs-toolTitleNav__text">
+          Site Unavailable
+         </span>
+         <span class="Mrphs-toolTitleNav__addLeft">
+         </span>
+        </h2>
+        <div class="Mrphs-toolTitleNav__button_container">
+        </div>
+       </nav>
+       <!-- END Tool Header -->
+       <!-- START Tool Body -->
+       <div class="Mrphs-toolBody Mrphs-toolBody--sakai-iframe-site">
+        <link href="/library/skin/tool_base.css?version=UG Sakai" media="screen, tty, tv, handheld, projection" rel="stylesheet" type="text/css"/>
+        <div class="portletBody siteDescription" style="height:300px">
+         The site you requested is not available.
+        </div>
+       </div>
+       <!-- end Tool Body -->
+      </div>
+      <!-- end Tool Container -->
+     </div>
+    </main>
+    <footer class="portal-footer p-2 d-flex flex-column flex-xxl-row justify-content-between align-items-center mt-auto pt-3 border-top">
+     <ul class="nav">
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.ug.edu.gh/" target="">
+        UG Website
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://portal.office.com/" target="">
+        UG Email
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https:https://ienabler.ug.edu.gh/pls/prodi41/w99pkg.mi_login" target="">
+        MIS Web
+       </a>
+      </li>
+      <li class="nav-item">
+       <button class="btn nav-link" data-bs-container="footer" data-bs-content='
+&lt;ul class="list-group list-group-flush"&gt;
+    &lt;li class="list-group-item"&gt;
+        &lt;span class="fw-bold"&gt;UG Sakai Version:  &lt;/span&gt;
+        &lt;span&gt;25.1&lt;/span&gt;
+    &lt;/li&gt;
+            &lt;li class="list-group-item"&gt;
+            &lt;span class="fw-bold"&gt;Server Time:&lt;/span&gt;
+            &lt;span id="serverTime" class="Mrphs-footer--server-time"&gt;&lt;/span&gt;
+        &lt;/li&gt;
+            &lt;li class="list-group-item"&gt;
+        &lt;span class="fw-bold"&gt;Server:&lt;/span&gt;
+        &lt;span&gt;ugghana_app4&lt;/span&gt;
+    &lt;/li&gt;
+    &lt;li class="list-group-item"&gt;
+        &lt;span class="fw-bold"&gt;Build Info:&lt;/span&gt;
+        &lt;span&gt;UG Sakai&lt;/span&gt;
+    &lt;/li&gt;
+&lt;/ul&gt;
+' data-bs-html="true" data-bs-placement="top" data-bs-template='&lt;div class="popover" role="tooltip"&gt;&lt;div class="popover-arrow"&gt;&lt;/div&gt;&lt;h3 class="mt-0 popover-header"&gt;&lt;/h3&gt;&lt;div class="popover-body p-2"&gt;&lt;/div&gt;&lt;/div&gt;' data-bs-toggle="popover" id="server-info" title="Server Information">
+        <span aria-hidden="true" class="bi bi-info-circle">
+        </span>
+       </button>
+      </li>
+     </ul>
+     <div class="copyright-powered">
+      <span>
+       Copyright 2003-2026 The Apereo Foundation. All rights reserved.
+      </span>
+      <ul>
+       <li>
+        <a href="https://www.ug.edu.gh/" target="_blank">
+         <img alt="Powered by UG ITD" class="poweredby__image" src="/library/image/poweredBySakai.png"/>
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="Mrphs-tutorial Mrphs-modal" id="tutorial">
+     </div>
+    </footer>
+   </div>
+   <!-- END VM includePage.vm -->
+   <aside aria-labelledby="sakai-calendar-panel-label" class="offcanvas offcanvas-end" id="sakai-calendar-panel" tabindex="-1">
+    <div class="offcanvas-header">
+     <h2 class="offcanvas-title" id="sakai-calendar-panel-label">
+      Calendar
+     </h2>
+     <button aria-label="Close this calendar panel" class="btn-close text-reset" data-bs-dismiss="offcanvas" type="button">
+     </button>
+    </div>
+    <div class="offcanvas-body">
+     <sakai-calendar defer="">
+     </sakai-calendar>
+    </div>
+   </aside>
+   <nav class="portal-mobilebar bg-dark d-flex d-md-none align-items-center justify-content-between">
+    <ul class="nav flex-nowrap align-items-center justify-content-around w-100">
+     <li>
+      <button aria-controls="portal-nav-sidebar" aria-expanded="false" aria-label="View the site navigation" class="btn icon-button responsive-allsites-button" data-bs-target="#portal-nav-sidebar" data-bs-toggle="offcanvas" title="View the site navigation">
+       <span aria-hidden="true" class="bi bi-grid-3x3-gap-fill">
+       </span>
+      </button>
+     </li>
+     <li>
+      <a class="sak-sysInd-help nav-link text-white responsive-help-icon" href="https://sakai.ug.edu.gh/portal/help/main?help=sakai.iframe.site">
+       <svg aria-label="View contextual help for this page" class="bi bi-question-circle" data-bs-placement="bottom" data-bs-toggle="tooltip" fill="currentColor" height="24" role="img" title="Help" viewbox="0 0 16 16" width="24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z">
+        </path>
+        <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z">
+        </path>
+       </svg>
+      </a>
+     </li>
+    </ul>
+   </nav>
+  </div>
+  <!-- end Mrphs-portalWrapper -->
+  <!-- END VM site.vm -->
+  <script>
+   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', '', { 'userId': portal.user.id });
+        ga('set', 'anonymizeIp', false);
+        ga('send', 'pageview');
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-VNN6E3BDB8">
+  </script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VNN6E3BDB8', {
+      'anonymize_ip': false,
+      'user_id': portal.user.id
+  });
+  </script>
+  <script>
+   //Set portal dom references
+  portal.container = document.querySelector("div.portal-container");
+  portal.head = portal.container.querySelector("header.portal-header");
+  portal.footer = portal.container.querySelector("footer.portal-footer");
+  portal.sidebars = {
+    sites: portal.container.querySelector("#portal-nav-sidebar")
+  };
+
+  //Setup sidebar collapse buttons
+  new SidebarCollapseButton(document.getElementById("sidebar-collapse-button"), {
+    i18n: {
+      titleExpanded: "Collapse sidebar",
+      titleCollapsed: "Expand sidebar"
+    },
+    toggleClass: "sidebar-collapsed",
+    portalContainer: portal.container,
+    sitesSidebar: portal.sidebars.sites,
+  });
+
+  //Setup sidebar
+  const siteSidebar = new SitesSidebar(portal.sidebars.sites, {
+    i18n: {
+      expandTools: "Expand tool list",
+      collapseTools: "Collapse tool list",
+      pinButtons: {
+        titlePin: "Pin site",
+        titleUnpin: "Unpin site",
+      },
+    },
+    currentSite: "!error",
+  });
+  const setSidebarView = (currentBP, previousBP) => {
+    let currentMobile = BreakpointManager.compare(currentBP, "sm") <= 0;
+    let previousMobile = previousBP ? BreakpointManager.compare(previousBP, "sm") <= 0 : null;
+    //Only set View if we are crossing the sm breakpoint
+    if (previousMobile === null || currentMobile != previousMobile) {
+      siteSidebar.setView(currentMobile);
+    }
+  };
+  portal.breakpointManager.registerCallback(setSidebarView);
+  setSidebarView(portal.breakpointManager.currentBreakpoint);
+
+  //Setup server info popover
+  new ServerInfoPopover(document.querySelector("#server-info"), {
+        serverTime: {
+      selector: "#serverTime",
+      initialTime: 1769812363257,
+      timeZone: "GMT",
+    },
+            popoverContainer: portal.footer,
+    iconClasses: ["bi-info-circle", "bi-info-circle-fill"],
+  });
+
+  // Setup lessons subpage navigaion
+
+  let subPages = []; // exclude the current site
+  let currentSubPage = null;
+
+  
+        ;
+        ;
+
+  // Remove duplicate pages e.g. page in pinned and recent, then create
+  // a SubPageNavigation instance for each site
+
+  subPages.filter((v, i) => subPages.findIndex(val => val.siteId === v.siteId) === i)
+    .forEach(data => new SubPageNavigation(data));
+
+  if (currentSubPage !== null && sakai && sakai.subnav) {
+    currentSubPage.setCurrentPage();
+  }
+
+      //--start-logged-out-scripts
+    // Setup header login password field
+    new PasswordField(portal.head.querySelector(".password-field"), {
+      icons: {
+        hidden: "bi-eye-slash-fill",
+        shown:"bi-eye-fill",
+        capsLock: "bi-capslock-fill"
+      }
+    });
+
+    // Setup mobile login
+    new MobileLogin(portal.head.querySelector("#mobileLoginBtn"), {
+      passwordField: {
+        icons: {
+          hidden: "bi-eye-slash-fill",
+          shown:"bi-eye-fill",
+          capsLock: "bi-capslock-fill",
+        }
+      }
+    });
+  //--end-logged-out-scripts
+  </script>
+  <script>
+   var needJQuery = true;
+  var secondJQuery = false;
+  var notJQuery = false;
+  var dollarEmpty = false;
+  var dollarVersion = false;
+  if (window.$) {
+    if (window.$.fn && window.$.fn) {
+      dollarVersion = window.$.fn.jquery;
+    } else {
+      dollarVersion = 'not jQuery';
+      console.debug('Dollar is defined but is not jQuery');
+      console.debug($);
+      //Just have it reload this other $ afterward
+      notJQuery = true;
+    }
+  } else {
+    dollarEmpty = true;
+    dollarVersion = 'not present';
+    if (window.jQuery) {
+      console.debug('tool called jQuery.noConflict()');
+    }
+  }
+  if (window.jQuery) {
+    tver = jQuery.fn.jquery;
+    if (tver.indexOf('1.12.') == 0) {
+      console.debug('Using tool jQuery '+tver);
+      needJQuery = false;
+    } else {
+      secondJQuery = true;
+    }
+  }
+  if (needJQuery) {
+    document.write('\x3Cscript src="/library/webjars/jquery/1.12.4/jquery.min.js?version=UG Sakai">'+'\x3C/script>')
+    document.write('\x3Cscript src="/library/webjars/jquery-migrate/1.4.1/jquery-migrate.min.js?version=UG Sakai">'+'\x3C/script>')
+    document.write('\x3Cscript src="/library/webjars/jquery-ui/1.12.1/jquery-ui.min.js?version=UG Sakai">'+'\x3C/script>')
+    document.write('\x3Clink rel="stylesheet" href="/library/webjars/jquery-ui/1.12.1/jquery-ui.min.css?version=UG Sakai"/>')
+    if (Modernizr.touch) {
+      document.write('\x3Cscript src="/library/webjars/jquery-ui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js?version=UG Sakai">'+'\x3C/script>')
+    }
+    console.debug('Portal scripts loaded JQ+MI+UI');
+  } else {
+    if (typeof jQuery.migrateWarnings == 'undefined') {
+      document.write('\x3Cscript src="/library/webjars/jquery-migrate/1.4.1/jquery-migrate.min.js?version=UG Sakai">'+'\x3C/script>')
+      console.debug('Portal adding jQuery migrate');
+    }
+    if (typeof jQuery.ui == 'undefined') {
+      document.write('\x3Clink rel="stylesheet" href="/library/webjars/jquery-ui/1.12.1/jquery-ui.min.css?version=UG Sakai"/>')
+      console.debug('Portal adding jQuery UI');
+    }
+    if (typeof jQuery.ui == 'undefined' || (typeof jQuery.ui.mouse != 'undefined' && typeof jQuery.ui.mouse.prototype._touchStart == 'undefined')) {
+      document.write('\x3Cscript src="/library/webjars/jquery-ui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js?version=UG Sakai">'+'\x3C/script>')
+      console.debug('Portal adding jQuery UI Touch Punch for touch device support');
+    }
+  }
+  </script>
+  <script src="/library/js/ksortable-plugin.js?version=UG Sakai">
+  </script>
+  <script>
+   $PBJQ = jQuery; // The Portal's jQuery (also in $ for now)
+  </script>
+  <script>
+   if (typeof Handlebars == 'undefined') {
+    document.write('\x3Cscript src="/library/webjars/handlebars/4.4.0/handlebars.runtime.min.js?version=UG Sakai">\x3C/script>');
+  }
+  </script>
+  <script>
+   includeWebjarLibrary("qtip2");
+  </script>
+  <script src="/library/js/jquery/qtip/tutorial.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/jquery/bgiframe/jquery.bgiframe.min.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/jquery/cluetip/1.2.10/jquery.cluetip.min.js?version=UG Sakai">
+  </script>
+  <script>
+   if (typeof jQuery.i18n == 'undefined') {
+    document.write('\x3Cscript src="/library/webjars/jquery-i18n-properties/1.2.2/jquery.i18n.properties.min.js?version=UG Sakai">\x3C/script>');
+  }
+  </script>
+  <script src="/library/js/jquery/jquery.clearsearch.js?version=UG Sakai">
+  </script>
+  <script src="/library/webjars//pnotify/4.0.0/dist/iife/PNotify.js?version=UG Sakai">
+  </script>
+  <script src="/library/webjars//pnotify/4.0.0/dist/iife/PNotifyButtons.js?version=UG Sakai">
+  </script>
+  <script src="/library/webjars//cropper/4.1.0/dist/cropper.min.js?version=UG Sakai">
+  </script>
+  <script src="/library/js/portal/portal.theme.switcher.js?version=UG Sakai">
+  </script>
+  <script>
+   function portal_check_pnotify() {
+
+    $PBJQ.getJSON( "/direct/portal/notify.json", function(data) {
+
+      data.error.forEach(error => {
+
+        $PBJQ(function () {
+
+          PNotify.defaults.styling = 'bootstrap3';
+          PNotify.defaults.icons = 'fontawesome4';
+          PNotify.alert({
+            title: 'Notice',
+            text: error,
+            type: 'notice',
+          });
+        });
+      });
+    });
+  }
+  </script>
+  <script src="/webcomponents/bundles/body-scripts.js?version=UG Sakai" type="module">
+  </script>
+  <script src="/library/js/sakai.scripts.min.js?version=UG Sakai">
+  </script>
+  <script>
+   var sakaiPortalWindow = "";
+  </script>
+  <script>
+   // LTI frame management code shared with tsugi-static/js/tsugiscripts.js
+// If we are not the top frame - immediately communicate our size and jack into the JQuery resize
+// Debounce happens in lti_frameResize()
+if ( ! (self == top) ) {
+    if ( typeof LTI_PARENT_IFRAME_ID === 'undefined' ) {
+        lti_frameResize();
+        $(window).on('resize', function() { lti_frameResize(); });
+    } else {
+        lti_frameResize(false, LTI_PARENT_IFRAME_ID);
+        $(window).on('resize', function() { lti_frameResize(false, LTI_PARENT_IFRAME_ID); });
+    }
+}
+  </script>
+  <script>
+   // If we loaded a second jQuery, revert $ and jQuery to the first jQuery
+  if (secondJQuery) {
+    $PBJQ = jQuery.noConflict(true); // Safely return $ to the tool jQuery
+    if (!dollarEmpty && !notJQuery ) jQuery = $;  // Return jQuery to point at the tool jQuery
+  }
+  if (notJQuery && !secondJQuery) {
+    $PBJQ = jQuery.noConflict(true); // Safely return $ to the tool jQuery
+    //Just set jQuery to be the same thing since it didn't exist before
+    jQuery = $PBJQ;
+  }
+  console.debug(`Portal script load complete PBJQ=$PBJQ.fn.jquery jQuery=${jQuery.fn.jquery} $=${dollarVersion}`);
+
+  // Listen for notifications-loaded on the body element. This is fired by the sui-notifications
+  // component when it has an update to its list of notifications
+  document.body.addEventListener("notifications-loaded", e => {
+
+    document.body.querySelectorAll(".portal-notifications-indicator").forEach(span => {
+      span.classList.toggle("d-none", !e.detail.count);
+    });
+  });
+  </script>
+  <script>
+   document.addEventListener('DOMContentLoaded', function () {
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+    const navIntraTool = document.querySelector('.navIntraTool');
+    const dropdownNavIntraTool = document.querySelector('.dropdown-navIntraTool');
+
+    if (dropdownNavIntraTool) {
+      dropdownToggle.addEventListener('click', function () {
+        navIntraTool.classList.toggle('dropdown-active');
+      });
+    }
+  });
+  </script>
+  <script>
+   // Work around the fact that several pages pull in very old versions
+// of JQuery.
+function paSystemJQueryOK() {
+    if (!window.jQuery) {
+        /* no jQuery at all */
+        return false;
+    }
+
+    var version_numbers = jQuery.fn.jquery.split('.');
+
+    /* >= 1.9+ */
+    return (parseInt(version_numbers[0]) > 1) || (parseInt(version_numbers[0]) == 1 && parseInt(version_numbers[1]) >= 9);
+}
+
+if (paSystemJQueryOK()) {
+  document.write('\x3Cscript src="/pasystem-tool/scripts/pasystem.js?version&#x3D;UG Sakai">\x3C/script>');
+  document.write('\x3Cscript>includeWebjarLibrary(\'featherlight\')\x3C/script>');
+
+  var pasystem = pasystem || {'loaded': true};
+} else {
+  console.log("PASystem not loaded for this page because jQuery is missing or unsupported.");
+}
+  </script>
+  <link href="/pasystem-tool/stylesheets/pasystem.css?version=UG Sakai" property="stylesheet" rel="stylesheet" type="text/css"/>
+  <script id="pasystemBannerAlertsTemplate" type="text/template">
+   <div class="pasystem-banner-alert pasystem-banner-${type}" id="${id}">
+    <span class="pasystem-banner-alert-message">${message}</span>
+    {if dismissible}
+      <a class="pasystem-banner-alert-close" href="javascript:void(0)">
+        <span class="sr-only">Dismiss Alert</span>
+      </a>
+    {/if}
+  </div>
+  </script>
+  <script id="pasystemBannerAlertsToggleTemplate" type="text/template">
+   <li class="pasystem-banner-alert-toggle-list-item">
+    <a href="javscript:void(0)" class="pasystem-banner-alert-toggle">
+      Show System Alerts
+    </a>
+  </li>
+  </script>
+  <script>
+   if (pasystem) {
+    pasystem['banners'] = new PASystemBannerAlerts([], "");
+  }
+  </script>
+  <script id="timezoneBannerTemplate" type="text/template">
+   <span>
+    Your computer's time zone <span class="computerTimezone">${reportedTimezone}</span> does not match your account's time zone of <span class="prefsTimezone">${prefsTimezone}</span>. <span class="pasystem-tz-click-here"><a href="${setTimezoneUrl}" id="setTimezoneMsg">Click here to update your time zone preferences</a></span>.
+  </span>
+  </script>
+  <script>
+   if (pasystem) {
+    new PASystemTimezoneChecker().checkTimezone();
+  }
+  </script>
+  <!-- START VM includeCookieNotice.vm -->
+  <!-- END VM includeCookieNotice.vm -->
+ </body>
+</html>
