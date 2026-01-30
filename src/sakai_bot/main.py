@@ -6,7 +6,7 @@ Coordinates the full monitoring workflow:
 2. Scrape all courses
 3. Scrape announcements, assignments, and exams
 4. Check for new/updated items (deduplication)
-5. Send WhatsApp notifications
+5. Send Telegram notifications
 6. Record sent notifications
 """
 
@@ -18,7 +18,7 @@ from sakai_bot.auth import SakaiSession
 from sakai_bot.config import get_settings, setup_logging
 from sakai_bot.db import NotificationStore
 from sakai_bot.models import Announcement, Assignment, Exam
-from sakai_bot.notify import MessageFormatter, WhatsAppNotifier
+from sakai_bot.notify import MessageFormatter, TelegramNotifier
 from sakai_bot.scrapers import (
     AnnouncementScraper,
     AssignmentScraper,
@@ -41,7 +41,7 @@ class SakaiMonitor:
         """Initialize the monitor with all components."""
         self.settings = get_settings()
         self.notification_store = NotificationStore()
-        self.whatsapp = WhatsAppNotifier()
+        self.telegram = TelegramNotifier()
         self.formatter = MessageFormatter()
         
         # Track stats
@@ -100,7 +100,7 @@ class SakaiMonitor:
             # Try to send error notification
             try:
                 error_msg = self.formatter.format_error(str(e))
-                self.whatsapp.send_message(error_msg)
+                self.telegram.send_message(error_msg)
             except Exception:
                 pass  # Don't fail on notification error
             
@@ -216,7 +216,7 @@ class SakaiMonitor:
         exams: List[Exam],
     ) -> None:
         """
-        Send WhatsApp notifications for new items.
+        Send Telegram notifications for new items.
         
         Args:
             announcements: New announcements to notify
@@ -259,7 +259,7 @@ class SakaiMonitor:
                 assignments_count=len(assignments),
                 exams_count=len(exams),
             )
-            self.whatsapp.send_message(summary)
+            self.telegram.send_message(summary)
     
     def _send_and_record(self, item, message: str) -> bool:
         """
@@ -273,7 +273,7 @@ class SakaiMonitor:
             bool: True if sent and recorded successfully
         """
         try:
-            if self.whatsapp.send_message(message):
+            if self.telegram.send_message(message):
                 self.notification_store.mark_as_sent(item)
                 self.stats["notifications_sent"] += 1
                 logger.debug(f"Sent notification for: {item.title}")

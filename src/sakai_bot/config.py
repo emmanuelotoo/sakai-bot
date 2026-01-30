@@ -52,18 +52,14 @@ class Settings(BaseSettings):
         description="Supabase service role key (not anon key)"
     )
     
-    # WhatsApp Cloud API Configuration
-    whatsapp_token: str = Field(
+    # Telegram Bot API Configuration
+    telegram_bot_token: str = Field(
         ...,
-        description="Meta WhatsApp Cloud API access token"
+        description="Telegram Bot API token (from @BotFather)"
     )
-    whatsapp_phone_number_id: str = Field(
+    telegram_chat_id: str = Field(
         ...,
-        description="WhatsApp Business phone number ID"
-    )
-    whatsapp_recipient_phone: str = Field(
-        ...,
-        description="Recipient phone number with country code (e.g., 233XXXXXXXXX)"
+        description="Telegram chat ID (user, group, or channel)"
     )
     
     # Optional Configuration
@@ -81,15 +77,6 @@ class Settings(BaseSettings):
     def validate_base_url(cls, v: str) -> str:
         """Ensure base URL doesn't have trailing slash."""
         return v.rstrip("/")
-    
-    @field_validator("whatsapp_recipient_phone")
-    @classmethod
-    def validate_phone(cls, v: str) -> str:
-        """Ensure phone number contains only digits."""
-        cleaned = "".join(filter(str.isdigit, v))
-        if len(cleaned) < 10:
-            raise ValueError("Phone number must have at least 10 digits")
-        return cleaned
     
     @field_validator("log_level")
     @classmethod

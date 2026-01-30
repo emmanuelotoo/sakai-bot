@@ -1,7 +1,7 @@
 """
-Message formatters for WhatsApp notifications.
+Message formatters for Telegram notifications.
 
-Formats scraped data into clean, readable WhatsApp messages.
+Formats scraped data into clean, readable Telegram messages.
 """
 
 from datetime import datetime
@@ -12,13 +12,13 @@ from sakai_bot.models import Announcement, Assignment, Exam
 
 class MessageFormatter:
     """
-    Formats notification content for WhatsApp messages.
+    Formats notification content for Telegram messages.
     
     Creates well-structured, emoji-enhanced messages that are
     easy to read on mobile devices.
     """
     
-    # Maximum message length for WhatsApp (4096 chars, but we leave buffer)
+    # Maximum message length for Telegram (4096 chars, but we leave buffer)
     MAX_LENGTH = 3500
     
     @staticmethod
