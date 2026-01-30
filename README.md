@@ -1,13 +1,13 @@
 # Sakai Bot
 
-Monitors Sakai LMS for new announcements, assignments, and exams — sends WhatsApp notifications automatically.
+Monitors Sakai LMS for new announcements, assignments, and exams — sends Telegram notifications automatically.
 
 ## Features
 
 - Tracks announcements across all courses
 - Monitors assignments and deadlines
 - Detects exams from announcements/calendar
-- Sends WhatsApp alerts (Meta Cloud API)
+- Sends Telegram alerts via Bot API
 - Prevents duplicate notifications (Supabase)
 - Runs on schedule via GitHub Actions
 
@@ -34,9 +34,8 @@ SAKAI_USERNAME=your_student_id
 SAKAI_PASSWORD=your_password
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_key
-WHATSAPP_TOKEN=your_token
-WHATSAPP_PHONE_NUMBER_ID=your_phone_id
-WHATSAPP_RECIPIENT_PHONE=233XXXXXXXXX
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
 ```
 
 ### 3. Set Up Supabase
@@ -67,16 +66,20 @@ Add these secrets in **Settings → Secrets → Actions**:
 
 - `SAKAI_USERNAME`, `SAKAI_PASSWORD`
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
-- `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_RECIPIENT_PHONE`
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
 
 The bot runs every 2 hours automatically. Trigger manually via **Actions → Sakai Monitor → Run workflow**.
 
-## WhatsApp Setup
+## Telegram Setup
 
-1. Create app at [Meta Developers](https://developers.facebook.com/)
-2. Add WhatsApp product
-3. Copy access token and phone number ID
-4. Add your number to allowed recipients
+1. **Create a bot**: Message [@BotFather](https://t.me/BotFather) on Telegram
+2. Send `/newbot` and follow the prompts
+3. Copy the **API token** it gives you → `TELEGRAM_BOT_TOKEN`
+4. **Get your chat ID**: Message [@userinfobot](https://t.me/userinfobot) or [@getidsbot](https://t.me/getidsbot)
+5. Copy your **chat ID** → `TELEGRAM_CHAT_ID`
+6. **Start your bot**: Open your bot in Telegram and click "Start" (required for the bot to message you)
+
+> 💡 You can also use a group chat ID (add the bot to a group) or channel ID (add the bot as admin).
 
 ## Contributing
 
