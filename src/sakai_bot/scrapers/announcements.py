@@ -89,6 +89,7 @@ class AnnouncementScraper(BaseScraper):
         try:
             data = self.session.get_json(
                 f"/direct/announcement/site/{course.site_id}.json"
+                f"?n=100&_limit=100"
             )
         except Exception as e:
             logger.debug(
@@ -117,7 +118,9 @@ class AnnouncementScraper(BaseScraper):
             List[Announcement]: User-level announcements
         """
         try:
-            data = self.session.get_json("/direct/announcement/user.json")
+            data = self.session.get_json(
+                "/direct/announcement/user.json?n=100&_limit=100"
+            )
         except Exception:
             return []
 
