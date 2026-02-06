@@ -182,7 +182,7 @@ class SakaiSession:
     
     def _verify_login(self, response: requests.Response) -> bool:
         """
-        Verify that login was successful.
+        Verify that login was successful by checking the session API.
         
         Args:
             response: Response from login POST
@@ -190,14 +190,29 @@ class SakaiSession:
         Returns:
             bool: True if login appears successful
         """
-        # Check for common failure indicators
+        # Primary check: use Sakai's REST session API
+        try:
+            session_resp = self.session.get(
+                self._get_url("/direct/session/current.json"),
+                timeout=15,
+            )
+            if session_resp.status_code == 200:
+                import json
+                data = json.loads(session_resp.text)
+                if data.get("userId"):
+                    self._user_id = data.get("userEid") or data.get("userId")
+                    return True
+        except Exception:
+            pass
+        
+        # Fallback: check for failure indicators in the response
         failure_indicators = [
             "Invalid login",
             "invalid credentials",
             "Login failed",
             "incorrect password",
             "authentication failed",
-            "eid-pw-error",  # Sakai error class
+            "Login Required",
         ]
         
         response_text = response.text.lower()
@@ -205,27 +220,17 @@ class SakaiSession:
             if indicator.lower() in response_text:
                 return False
         
-        # Check for success indicators
+        # Fallback: check for success indicators
         success_indicators = [
-            # Successful login typically redirects to portal with user info
             "logout",
             "my workspace",
             "my sites",
-            'class="currentUser"',
-            'id="loginUser"',
         ]
         
         for indicator in success_indicators:
             if indicator.lower() in response_text:
+                self._extract_user_info(response.text)
                 return True
-        
-        # Check cookies - Sakai sets specific cookies on successful login
-        cookies = self.session.cookies.get_dict()
-        if "JSESSIONID" in cookies or "sakai" in str(cookies).lower():
-            # Have session cookie - likely logged in
-            # Try to extract user ID from page
-            self._extract_user_info(response.text)
-            return True
         
         return False
     
