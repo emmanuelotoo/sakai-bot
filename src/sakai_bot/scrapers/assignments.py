@@ -50,6 +50,10 @@ class AssignmentScraper(BaseScraper):
         try:
             data = self.session.get_json("/direct/assignment/my.json")
             for item in data.get("assignment_collection", []):
+                # Only include assignments from our filtered courses
+                context = item.get("context", "")
+                if context not in site_map:
+                    continue
                 assignment = self._parse_api_assignment(item, site_map)
                 if assignment and assignment.id not in seen_ids:
                     seen_ids.add(assignment.id)

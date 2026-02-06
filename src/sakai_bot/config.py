@@ -71,6 +71,10 @@ class Settings(BaseSettings):
         default="Africa/Accra",
         description="Timezone for date parsing"
     )
+    current_semester: Optional[str] = Field(
+        default=None,
+        description="Filter courses to this semester (e.g., 'S1-2526'). If not set, all courses are scraped."
+    )
     
     @field_validator("sakai_base_url")
     @classmethod

@@ -133,6 +133,10 @@ class AnnouncementScraper(BaseScraper):
             site_title = item.get("siteTitle", "")
             course = site_map.get(site_id) or site_map.get(site_title)
 
+            # Only include announcements from our filtered courses
+            if not course:
+                continue
+
             ann = self._parse_api_announcement(
                 item, course, site_title=site_title
             )

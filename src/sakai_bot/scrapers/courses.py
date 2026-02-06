@@ -29,6 +29,9 @@ class CourseScraper(BaseScraper):
         """
         Scrape all enrolled courses via the REST API.
 
+        Paginates through results and optionally filters
+        to the current semester.
+
         Returns:
             List[Course]: List of enrolled courses
         """
@@ -37,16 +40,37 @@ class CourseScraper(BaseScraper):
         courses: List[Course] = []
 
         try:
-            data = self.session.get_json("/direct/site.json")
-            sites = data.get("site_collection", [])
+            # Paginate to get ALL sites (default limit is 10)
+            all_sites: list = []
+            limit = 50
+            while True:
+                data = self.session.get_json(
+                    f"/direct/site.json?_limit={limit}&_start={len(all_sites)}"
+                )
+                sites = data.get("site_collection", [])
+                if not sites:
+                    break
+                all_sites.extend(sites)
+                if len(sites) < limit:
+                    break
 
-            for site in sites:
+            for site in all_sites:
                 course = self._parse_site(site)
                 if course:
                     courses.append(course)
 
         except Exception as e:
             logger.error(f"Error scraping courses via REST API: {e}")
+
+        # Filter to current semester if configured
+        semester = self.settings.current_semester
+        if semester and courses:
+            filtered = [c for c in courses if semester in c.title]
+            logger.info(
+                f"Filtered to semester '{semester}': "
+                f"{len(filtered)}/{len(courses)} courses"
+            )
+            courses = filtered
 
         logger.info(f"Found {len(courses)} enrolled courses")
         return courses
