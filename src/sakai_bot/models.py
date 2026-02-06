@@ -8,7 +8,7 @@ Defines Pydantic models for all scraped entities:
 - Exam/Quiz
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from typing import Optional
@@ -146,7 +146,7 @@ class Assignment(BaseModel):
         """Check if assignment is still upcoming (not past due)."""
         if self.due_date is None:
             return True
-        return self.due_date > datetime.now()
+        return self.due_date > datetime.now(timezone.utc)
 
 
 class Exam(BaseModel):

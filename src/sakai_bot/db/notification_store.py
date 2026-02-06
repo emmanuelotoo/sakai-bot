@@ -40,6 +40,9 @@ class NotificationStore:
     A notification is considered "new" if:
     1. The dedup_key doesn't exist in the database, OR
     2. The dedup_key exists but content_hash has changed (content was updated)
+    
+    Falls back to an in-memory set if the Supabase table doesn't exist,
+    so the bot still works without the database (just no persistence).
     """
     
     def __init__(self, client: Optional[Client] = None):
@@ -51,6 +54,26 @@ class NotificationStore:
         """
         self.client = client or get_supabase_client()
         self.table = self.client.table(TABLE_NAME)
+        self._table_exists: Optional[bool] = None
+        self._memory_store: set = set()  # fallback
+    
+    def _check_table(self) -> bool:
+        """Check if the Supabase table exists (cached)."""
+        if self._table_exists is not None:
+            return self._table_exists
+        
+        try:
+            self.table.select("dedup_key").limit(1).execute()
+            self._table_exists = True
+        except Exception:
+            logger.warning(
+                f"Table '{TABLE_NAME}' not found in Supabase. "
+                "Using in-memory deduplication (no persistence across runs). "
+                "Create the table in Supabase SQL Editor — see README for SQL."
+            )
+            self._table_exists = False
+        
+        return self._table_exists
     
     def has_been_sent(self, item: NotifiableItem) -> bool:
         """
@@ -62,6 +85,11 @@ class NotificationStore:
         Returns:
             bool: True if this exact content has already been sent
         """
+        if not self._check_table():
+            # Fallback: in-memory dedup (only within this run)
+            key = f"{item.dedup_key}:{item.content_hash}"
+            return key in self._memory_store
+        
         try:
             result = (
                 self.table
@@ -102,6 +130,13 @@ class NotificationStore:
         Returns:
             bool: True if successfully recorded
         """
+        # Always record in memory
+        key = f"{item.dedup_key}:{item.content_hash}"
+        self._memory_store.add(key)
+        
+        if not self._check_table():
+            return True
+        
         try:
             record = SentNotification(
                 notification_type=item.notification_type,
@@ -113,8 +148,12 @@ class NotificationStore:
             )
             
             # Upsert based on dedup_key
+            data = record.model_dump(exclude={"id"})
+            # Convert datetime to ISO string for JSON serialization
+            if isinstance(data.get("sent_at"), datetime):
+                data["sent_at"] = data["sent_at"].isoformat()
             self.table.upsert(
-                record.model_dump(exclude={"id"}),
+                data,
                 on_conflict="dedup_key"
             ).execute()
             

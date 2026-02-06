@@ -290,6 +290,21 @@ class SakaiSession:
         response.raise_for_status()
         return BeautifulSoup(response.text, "lxml")
     
+    def get_json(self, path: str, **kwargs) -> dict:
+        """
+        Make authenticated GET request and return parsed JSON.
+        
+        Args:
+            path: URL path (e.g., "/direct/announcement/user.json")
+            **kwargs: Additional arguments passed to requests.get
+            
+        Returns:
+            dict: Parsed JSON response
+        """
+        response = self.get(path, **kwargs)
+        response.raise_for_status()
+        return response.json()
+    
     def logout(self) -> None:
         """Log out from Sakai session."""
         if self._authenticated:

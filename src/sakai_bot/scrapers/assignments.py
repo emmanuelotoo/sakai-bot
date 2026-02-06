@@ -1,15 +1,15 @@
 """
 Assignment scraper for Sakai.
 
-Extracts assignments and their deadlines from all enrolled courses.
+Uses the Sakai REST API (/direct/assignment/) to extract
+assignments and deadlines from all enrolled courses.
 """
 
 import logging
-import re
+from datetime import datetime, timezone
 from typing import List, Optional
-from urllib.parse import urljoin
 
-from bs4 import Tag
+from bs4 import BeautifulSoup
 
 from sakai_bot.auth.sakai_session import SakaiSession
 from sakai_bot.models import Assignment, AssignmentStatus, Course
@@ -20,347 +20,217 @@ logger = logging.getLogger(__name__)
 
 class AssignmentScraper(BaseScraper):
     """
-    Scrapes assignments from Sakai courses.
-    
-    Extracts assignment title, due date, status, and other details
-    from the Assignments tool for each course.
+    Scrapes assignments from Sakai courses using the REST API.
+
+    Uses /direct/assignment/site/<siteId>.json for per-course
+    assignments, with /direct/assignment/my.json as a global source.
     """
-    
+
     def __init__(self, session: SakaiSession):
         """Initialize assignment scraper."""
         super().__init__(session)
-    
+
     def scrape(self, courses: List[Course]) -> List[Assignment]:
         """
         Scrape assignments from all provided courses.
-        
+
         Args:
             courses: List of courses to scrape
-            
+
         Returns:
             List[Assignment]: All found assignments
         """
         all_assignments: List[Assignment] = []
-        
-        for course in courses:
-            try:
-                assignments = self._scrape_course_assignments(course)
-                all_assignments.extend(assignments)
-                logger.debug(f"Found {len(assignments)} assignments in {course.code}")
-            except Exception as e:
-                logger.error(f"Error scraping assignments for {course.code}: {e}")
-                continue
-        
+        seen_ids: set = set()
+
+        # Build site_id -> course map
+        site_map = {c.site_id: c for c in courses}
+
+        # Primary: get all assignments via user endpoint
+        try:
+            data = self.session.get_json("/direct/assignment/my.json")
+            for item in data.get("assignment_collection", []):
+                assignment = self._parse_api_assignment(item, site_map)
+                if assignment and assignment.id not in seen_ids:
+                    seen_ids.add(assignment.id)
+                    all_assignments.append(assignment)
+        except Exception as e:
+            logger.error(f"Error fetching /direct/assignment/my.json: {e}")
+
+            # Fallback: per-course scraping
+            for course in courses:
+                try:
+                    assignments = self._scrape_course_assignments(course)
+                    for a in assignments:
+                        if a.id not in seen_ids:
+                            seen_ids.add(a.id)
+                            all_assignments.append(a)
+                except Exception as exc:
+                    logger.error(
+                        f"Error scraping assignments for {course.code}: {exc}"
+                    )
+
         logger.info(f"Total assignments scraped: {len(all_assignments)}")
         return all_assignments
-    
-    def _scrape_course_assignments(self, course: Course) -> List[Assignment]:
+
+    def _scrape_course_assignments(
+        self, course: Course
+    ) -> List[Assignment]:
         """
-        Scrape assignments from a single course.
-        
+        Scrape assignments for a single course via the REST API.
+
         Args:
             course: Course to scrape
-            
+
         Returns:
             List[Assignment]: Assignments from this course
         """
+        try:
+            data = self.session.get_json(
+                f"/direct/assignment/site/{course.site_id}.json"
+            )
+        except Exception as e:
+            logger.debug(
+                f"Could not get assignments for {course.code}: {e}"
+            )
+            return []
+
+        site_map = {course.site_id: course}
         assignments: List[Assignment] = []
-        
-        # Try multiple URL patterns for the assignments tool
-        url_patterns = [
-            f"/portal/site/{course.site_id}/tool/sakai.assignment.grades",
-            f"/portal/site/{course.site_id}/tool/sakai.assignment",
-            f"/direct/assignment/site/{course.site_id}.json",  # Direct API
-        ]
-        
-        soup = None
-        for url in url_patterns:
-            try:
-                if url.endswith('.json'):
-                    # Try JSON API endpoint
-                    assignments = self._scrape_from_api(url, course)
-                    if assignments:
-                        return assignments
-                else:
-                    soup = self.session.get_soup(url)
-                    break
-            except Exception:
-                continue
-        
-        if not soup:
-            return []
-        
-        # Parse HTML-based assignment list
-        # Pattern 1: Table-based layout (common in Sakai)
-        rows = soup.select(
-            'table.listHier tbody tr, '
-            '.itemListHighlite, '
-            '.assignment-list-item, '
-            '#assignmentList tr'
-        )
-        
-        for row in rows:
-            assignment = self._parse_assignment_row(row, course)
-            if assignment:
-                assignments.append(assignment)
-        
-        # Pattern 2: List-based layout
-        if not assignments:
-            items = soup.select('.portletBody ul li, .assignment-item')
-            for item in items:
-                assignment = self._parse_assignment_item(item, course)
-                if assignment:
-                    assignments.append(assignment)
-        
+        for item in data.get("assignment_collection", []):
+            a = self._parse_api_assignment(item, site_map)
+            if a:
+                assignments.append(a)
+
         return assignments
-    
-    def _scrape_from_api(self, url: str, course: Course) -> List[Assignment]:
-        """
-        Try to scrape assignments from Sakai's direct API.
-        
-        Args:
-            url: API endpoint URL
-            course: Course context
-            
-        Returns:
-            List[Assignment]: Assignments if API is available
-        """
-        try:
-            response = self.session.get(url.replace("/portal/", "/"))
-            if response.status_code != 200:
-                return []
-            
-            data = response.json()
-            assignments = []
-            
-            # Parse API response
-            for item in data.get("assignment_collection", []):
-                assignment = Assignment(
-                    id=item.get("id", ""),
-                    course_code=course.code,
-                    course_title=course.title,
-                    title=item.get("title", ""),
-                    description=item.get("instructions", ""),
-                    due_date=self.parse_date(item.get("dueTimeString")),
-                    open_date=self.parse_date(item.get("openTimeString")),
-                    close_date=self.parse_date(item.get("closeTimeString")),
-                    status=self._map_api_status(item.get("status", "")),
-                    max_points=item.get("gradeScale"),
-                    url=item.get("entityURL"),
-                )
-                if assignment.id and assignment.title:
-                    assignments.append(assignment)
-            
-            return assignments
-            
-        except Exception as e:
-            logger.debug(f"API scrape failed: {e}")
-            return []
-    
-    def _parse_assignment_row(
-        self, 
-        row: Tag, 
-        course: Course
+
+    def _parse_api_assignment(
+        self,
+        item: dict,
+        site_map: dict,
     ) -> Optional[Assignment]:
         """
-        Parse assignment from table row.
-        
+        Parse an assignment from the REST API response.
+
         Args:
-            row: BeautifulSoup tag containing table row
-            course: Course this assignment belongs to
-            
+            item: Assignment dict from API
+            site_map: Mapping of site_id -> Course
+
         Returns:
             Assignment or None if parsing fails
         """
-        try:
-            # Skip header rows
-            if row.select_one('th'):
-                return None
-            
-            cells = row.select('td')
-            if len(cells) < 2:
-                return None
-            
-            # Extract title (usually first cell with a link)
-            title_link = row.select_one('a')
-            if not title_link:
-                return None
-            
-            title = self.clean_text(title_link.get_text())
-            if not title:
-                return None
-            
-            href = title_link.get("href", "")
-            assign_id = self._extract_assignment_id(href) or self._generate_id(title, course.site_id)
-            
-            # Extract dates from cells
-            due_date = None
-            open_date = None
-            status = AssignmentStatus.NOT_STARTED
-            
-            for cell in cells:
-                cell_text = cell.get_text(strip=True).lower()
-                cell_class = " ".join(cell.get("class", []))
-                
-                # Look for due date
-                if "due" in cell_class or "due" in cell_text[:20]:
-                    due_date = self.parse_date(cell.get_text())
-                
-                # Look for open date
-                elif "open" in cell_class or "open" in cell_text[:20]:
-                    open_date = self.parse_date(cell.get_text())
-                
-                # Look for status
-                elif "status" in cell_class:
-                    status = self._parse_status(cell.get_text())
-            
-            # Try to find description
-            description_elem = row.select_one('.description, .instructions')
-            description = self.clean_text(description_elem.get_text()) if description_elem else None
-            
-            # Extract points if available
-            max_points = None
-            points_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:points?|pts?)', row.get_text(), re.I)
-            if points_match:
-                max_points = float(points_match.group(1))
-            
-            url = urljoin(self.session.base_url, href) if href else None
-            
-            return Assignment(
-                id=assign_id,
-                course_code=course.code,
-                course_title=course.title,
-                title=title,
-                description=description,
-                due_date=due_date,
-                open_date=open_date,
-                status=status,
-                max_points=max_points,
-                url=url,
-            )
-            
-        except Exception as e:
-            logger.debug(f"Could not parse assignment row: {e}")
+        assign_id = item.get("id") or item.get("entityId")
+        title = item.get("title", "")
+
+        if not assign_id or not title:
             return None
-    
-    def _parse_assignment_item(
-        self, 
-        item: Tag, 
-        course: Course
-    ) -> Optional[Assignment]:
-        """
-        Parse assignment from list item.
-        
-        Args:
-            item: BeautifulSoup tag containing list item
-            course: Course this assignment belongs to
-            
-        Returns:
-            Assignment or None if parsing fails
-        """
+
+        # Find the matching course
+        context = item.get("context", "")
+        course = site_map.get(context)
+
+        # Extract course code from context if no match (context is like "DCIT-201-1-S1-2425")
+        course_code = course.code if course else context.replace("-", " ")
+        course_title = course.title if course else context
+
+        # Parse description (HTML)
+        description = self._clean_html(item.get("instructions", "") or "")
+
+        # Parse dates (Sakai returns ISO strings or epoch)
+        due_date = self._parse_date_field(item.get("dueTime") or item.get("dueTimeString"))
+        open_date = self._parse_date_field(item.get("openTime") or item.get("openTimeString"))
+        close_date = self._parse_date_field(item.get("closeTime") or item.get("closeTimeString"))
+
+        # Determine status
+        status = self._determine_status(item, due_date, close_date)
+
+        # Max points
+        max_points = None
         try:
-            title_elem = item.select_one('a, .title, h3, h4')
-            if not title_elem:
-                return None
-            
-            title = self.clean_text(title_elem.get_text())
-            if not title:
-                return None
-            
-            href = title_elem.get("href", "") if title_elem.name == "a" else ""
-            assign_id = self._extract_assignment_id(href) or self._generate_id(title, course.site_id)
-            
-            # Extract due date
-            due_elem = item.select_one('.due, .dueDate, .deadline')
-            due_date = self.parse_date(due_elem.get_text()) if due_elem else None
-            
-            # If no specific element, try to parse from full text
-            if not due_date:
-                due_match = re.search(r'due[:\s]+(.+?)(?:\s*-|$)', item.get_text(), re.I)
-                if due_match:
-                    due_date = self.parse_date(due_match.group(1))
-            
-            url = urljoin(self.session.base_url, href) if href else None
-            
-            return Assignment(
-                id=assign_id,
-                course_code=course.code,
-                course_title=course.title,
-                title=title,
-                due_date=due_date,
-                url=url,
-            )
-            
-        except Exception as e:
-            logger.debug(f"Could not parse assignment item: {e}")
+            max_points = float(item.get("gradeScaleMaxPoints", 0) or 0)
+        except (ValueError, TypeError):
+            pass
+
+        # Build URL
+        site_id = item.get("context", "")
+        url = (
+            f"{self.session.base_url}/portal/site/{site_id}"
+            if site_id
+            else None
+        )
+
+        return Assignment(
+            id=str(assign_id),
+            course_code=course_code,
+            course_title=course_title,
+            title=title,
+            description=description,
+            due_date=due_date,
+            open_date=open_date,
+            close_date=close_date,
+            status=status,
+            max_points=max_points if max_points else None,
+            url=url,
+        )
+
+    def _parse_date_field(self, value) -> Optional[datetime]:
+        """Parse a date field that could be epoch dict, ISO string, or epoch ms."""
+        if not value:
             return None
-    
-    def _extract_assignment_id(self, url: str) -> Optional[str]:
-        """
-        Extract assignment ID from URL.
-        
-        Args:
-            url: URL that may contain assignment ID
-            
-        Returns:
-            str or None: Assignment ID
-        """
-        # Pattern: assignmentId=ID or /a/ID
-        patterns = [
-            r'assignmentId=([a-f0-9-]+)',
-            r'/assignment/([a-f0-9-]+)',
-            r'/a/([a-f0-9-]+)',
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, url, re.I)
-            if match:
-                return match.group(1)
-        
+
+        # If it's a dict with 'epochSecond' (Sakai sometimes returns this)
+        if isinstance(value, dict):
+            epoch = value.get("epochSecond") or value.get("time")
+            if epoch:
+                try:
+                    return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+                except (ValueError, TypeError, OSError):
+                    pass
+            return None
+
+        # If it's a number (epoch ms)
+        if isinstance(value, (int, float)):
+            try:
+                # If > year 3000 in seconds, it's probably milliseconds
+                if value > 32503680000:
+                    value = value / 1000
+                return datetime.fromtimestamp(value, tz=timezone.utc)
+            except (ValueError, TypeError, OSError):
+                return None
+
+        # If it's a string, try parsing
+        if isinstance(value, str):
+            return self.parse_date(value)
+
         return None
-    
-    def _generate_id(self, title: str, site_id: str) -> str:
-        """Generate stable ID from title and site."""
-        from hashlib import md5
-        content = f"{site_id}:assignment:{title}"
-        return md5(content.encode()).hexdigest()[:12]
-    
-    def _parse_status(self, status_text: str) -> AssignmentStatus:
-        """
-        Parse status text into AssignmentStatus enum.
-        
-        Args:
-            status_text: Status string from page
-            
-        Returns:
-            AssignmentStatus: Parsed status
-        """
-        status_lower = status_text.lower().strip()
-        
-        status_map = {
-            "submitted": AssignmentStatus.SUBMITTED,
-            "graded": AssignmentStatus.GRADED,
-            "in progress": AssignmentStatus.IN_PROGRESS,
-            "draft": AssignmentStatus.IN_PROGRESS,
-            "late": AssignmentStatus.LATE,
-            "closed": AssignmentStatus.CLOSED,
-            "not started": AssignmentStatus.NOT_STARTED,
-            "new": AssignmentStatus.NOT_STARTED,
-        }
-        
-        for key, value in status_map.items():
-            if key in status_lower:
-                return value
-        
-        return AssignmentStatus.NOT_STARTED
-    
-    def _map_api_status(self, status: str) -> AssignmentStatus:
-        """Map API status string to enum."""
-        status_lower = status.lower()
-        if "submitted" in status_lower:
+
+    def _determine_status(
+        self,
+        item: dict,
+        due_date: Optional[datetime],
+        close_date: Optional[datetime],
+    ) -> AssignmentStatus:
+        """Determine assignment status from API data."""
+        # Check submission status from API
+        status_str = (item.get("status") or "").lower()
+
+        if "submitted" in status_str:
             return AssignmentStatus.SUBMITTED
-        elif "graded" in status_lower:
+        if "graded" in status_str or "returned" in status_str:
             return AssignmentStatus.GRADED
-        elif "closed" in status_lower:
+
+        now = datetime.now(tz=timezone.utc)
+
+        if close_date and now > close_date:
             return AssignmentStatus.CLOSED
+        if due_date and now > due_date:
+            return AssignmentStatus.LATE
+
         return AssignmentStatus.NOT_STARTED
+
+    def _clean_html(self, html: str) -> str:
+        """Strip HTML tags and return clean text."""
+        if not html:
+            return ""
+        soup = BeautifulSoup(html, "lxml")
+        return soup.get_text(separator="\n", strip=True)

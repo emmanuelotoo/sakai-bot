@@ -4,7 +4,7 @@ Message formatters for Telegram notifications.
 Formats scraped data into clean, readable Telegram messages.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sakai_bot.models import Announcement, Assignment, Exam
@@ -106,7 +106,7 @@ class MessageFormatter:
         
         if assignment.due_date:
             # Add urgency indicator
-            days_until = (assignment.due_date - datetime.now()).days
+            days_until = (assignment.due_date - datetime.now(timezone.utc)).days
             if days_until < 0:
                 urgency = "⚠️ OVERDUE"
             elif days_until == 0:
@@ -172,7 +172,7 @@ class MessageFormatter:
         
         if exam.exam_date:
             # Calculate days until exam
-            days_until = (exam.exam_date - datetime.now()).days
+            days_until = (exam.exam_date - datetime.now(timezone.utc)).days
             if days_until < 0:
                 countdown = "(Already passed)"
             elif days_until == 0:

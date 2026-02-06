@@ -1,15 +1,15 @@
 """
 Announcement scraper for Sakai.
 
-Extracts announcements from all enrolled courses.
+Uses the Sakai REST API (/direct/announcement/) to extract
+announcements from all enrolled courses.
 """
 
 import logging
-import re
+from datetime import datetime, timezone
 from typing import List, Optional
-from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
 from sakai_bot.auth.sakai_session import SakaiSession
 from sakai_bot.models import Announcement, Course
@@ -20,224 +20,194 @@ logger = logging.getLogger(__name__)
 
 class AnnouncementScraper(BaseScraper):
     """
-    Scrapes announcements from Sakai courses.
-    
-    Extracts announcement title, content, author, and posted date
-    from the Announcements tool for each course.
+    Scrapes announcements from Sakai courses using the REST API.
+
+    Uses /direct/announcement/site/<siteId>.json for per-course
+    announcements, with /direct/announcement/user.json as a
+    supplementary source.
     """
-    
+
     def __init__(self, session: SakaiSession):
         """Initialize announcement scraper."""
         super().__init__(session)
-    
+
     def scrape(self, courses: List[Course]) -> List[Announcement]:
         """
         Scrape announcements from all provided courses.
-        
+
         Args:
             courses: List of courses to scrape
-            
+
         Returns:
             List[Announcement]: All found announcements
         """
         all_announcements: List[Announcement] = []
-        
+        seen_ids: set = set()
+
+        # Scrape per-course announcements via REST API
         for course in courses:
             try:
                 announcements = self._scrape_course_announcements(course)
-                all_announcements.extend(announcements)
-                logger.debug(f"Found {len(announcements)} announcements in {course.code}")
+                for ann in announcements:
+                    if ann.id not in seen_ids:
+                        seen_ids.add(ann.id)
+                        all_announcements.append(ann)
+                logger.debug(
+                    f"Found {len(announcements)} announcements in {course.code}"
+                )
             except Exception as e:
-                logger.error(f"Error scraping announcements for {course.code}: {e}")
+                logger.error(
+                    f"Error scraping announcements for {course.code}: {e}"
+                )
                 continue
-        
+
+        # Also fetch user-level announcements (catches cross-listed/global ones)
+        try:
+            user_announcements = self._scrape_user_announcements(courses)
+            for ann in user_announcements:
+                if ann.id not in seen_ids:
+                    seen_ids.add(ann.id)
+                    all_announcements.append(ann)
+        except Exception as e:
+            logger.error(f"Error scraping user announcements: {e}")
+
         logger.info(f"Total announcements scraped: {len(all_announcements)}")
         return all_announcements
-    
-    def _scrape_course_announcements(self, course: Course) -> List[Announcement]:
+
+    def _scrape_course_announcements(
+        self, course: Course
+    ) -> List[Announcement]:
         """
-        Scrape announcements from a single course.
-        
+        Scrape announcements for a single course via the REST API.
+
         Args:
             course: Course to scrape
-            
+
         Returns:
             List[Announcement]: Announcements from this course
         """
-        announcements: List[Announcement] = []
-        
-        # Try the announcements tool URL
-        # Sakai uses a tool placement URL pattern
-        ann_url = f"/portal/site/{course.site_id}/tool/sakai.announcements"
-        
         try:
-            soup = self.session.get_soup(ann_url)
-        except Exception:
-            # Try alternative URL patterns
-            try:
-                ann_url = f"/portal/site/{course.site_id}"
-                soup = self.session.get_soup(ann_url)
-            except Exception as e:
-                logger.debug(f"Could not access {course.code}: {e}")
-                return []
-        
-        # Find announcement entries
-        # Sakai has various HTML structures depending on version
-        
-        # Pattern 1: Standard announcement list
-        ann_items = soup.select('.announcementList li, #announcementList li, .announcement-item')
-        
-        if not ann_items:
-            # Pattern 2: Table-based layout
-            ann_items = soup.select('table.listHier tr, .itemListHighlite')
-        
-        if not ann_items:
-            # Pattern 3: Direct announcements on site page
-            ann_items = soup.select('.portletBody .portletMainWrap .announcements li')
-        
-        for item in ann_items:
-            announcement = self._parse_announcement_item(item, course)
-            if announcement:
-                announcements.append(announcement)
-        
-        # Also check for merged announcements view
-        merged = self._scrape_merged_view(soup, course)
-        announcements.extend(merged)
-        
+            data = self.session.get_json(
+                f"/direct/announcement/site/{course.site_id}.json"
+            )
+        except Exception as e:
+            logger.debug(
+                f"Could not get announcements for {course.code}: {e}"
+            )
+            return []
+
+        announcements: List[Announcement] = []
+        for item in data.get("announcement_collection", []):
+            ann = self._parse_api_announcement(item, course)
+            if ann:
+                announcements.append(ann)
+
         return announcements
-    
-    def _parse_announcement_item(
-        self, 
-        item: Tag, 
-        course: Course
+
+    def _scrape_user_announcements(
+        self, courses: List[Course]
+    ) -> List[Announcement]:
+        """
+        Scrape the user-level announcements feed.
+
+        Args:
+            courses: Known courses (for matching site IDs/titles)
+
+        Returns:
+            List[Announcement]: User-level announcements
+        """
+        try:
+            data = self.session.get_json("/direct/announcement/user.json")
+        except Exception:
+            return []
+
+        # Build lookup maps
+        site_map: dict = {}
+        for c in courses:
+            site_map[c.site_id] = c
+            site_map[c.title] = c
+
+        announcements: List[Announcement] = []
+        for item in data.get("announcement_collection", []):
+            site_id = item.get("siteId", "")
+            site_title = item.get("siteTitle", "")
+            course = site_map.get(site_id) or site_map.get(site_title)
+
+            ann = self._parse_api_announcement(
+                item, course, site_title=site_title
+            )
+            if ann:
+                announcements.append(ann)
+
+        return announcements
+
+    def _parse_api_announcement(
+        self,
+        item: dict,
+        course: Optional[Course],
+        site_title: str = "",
     ) -> Optional[Announcement]:
         """
-        Parse a single announcement item from HTML.
-        
+        Parse an announcement from the REST API response.
+
         Args:
-            item: BeautifulSoup tag containing announcement
-            course: Course this announcement belongs to
-            
+            item: Announcement dict from API
+            course: Course this belongs to (may be None)
+            site_title: Fallback site title if no course matched
+
         Returns:
             Announcement or None if parsing fails
         """
-        try:
-            # Extract title - look for link or header
-            title_elem = (
-                item.select_one('a.subject, a.title, h3, h4, .subject, .title') or
-                item.select_one('a')
-            )
-            
-            if not title_elem:
-                return None
-            
-            title = self.clean_text(title_elem.get_text())
-            if not title:
-                return None
-            
-            # Extract ID from link or generate from title
-            href = title_elem.get("href", "") if title_elem.name == "a" else ""
-            ann_id = self._extract_announcement_id(href) or self._generate_id(title, course.site_id)
-            
-            # Extract content
-            content_elem = item.select_one('.content, .body, .message, .announcementBody')
-            content = self.clean_text(content_elem.get_text()) if content_elem else ""
-            
-            # Extract author
-            author_elem = item.select_one('.author, .createdBy, .creator')
-            author = self.clean_text(author_elem.get_text()) if author_elem else None
-            
-            # Extract date
-            date_elem = item.select_one('.date, .time, .announcementDate, .createdOn')
-            posted_at = None
-            if date_elem:
-                posted_at = self.parse_date(date_elem.get_text())
-            
-            # Build URL
-            url = None
-            if href:
-                url = urljoin(self.session.base_url, href)
-            
-            return Announcement(
-                id=ann_id,
-                course_code=course.code,
-                course_title=course.title,
-                title=title,
-                content=content,
-                author=author,
-                posted_at=posted_at,
-                url=url,
-            )
-            
-        except Exception as e:
-            logger.debug(f"Could not parse announcement item: {e}")
+        ann_id = item.get("id") or item.get("entityId")
+        title = item.get("title", "")
+
+        if not ann_id or not title:
             return None
-    
-    def _scrape_merged_view(
-        self, 
-        soup: BeautifulSoup, 
-        course: Course
-    ) -> List[Announcement]:
-        """
-        Scrape announcements from merged/recent view.
-        
-        Some Sakai pages show recent announcements in a merged view.
-        
-        Args:
-            soup: Parsed HTML
-            course: Current course context
-            
-        Returns:
-            List[Announcement]: Found announcements
-        """
-        announcements: List[Announcement] = []
-        
-        # Look for recent announcements section
-        recent_section = soup.select_one('#recentAnnouncements, .recentAnnouncements')
-        if not recent_section:
-            return []
-        
-        items = recent_section.select('li, .announcement-item, tr')
-        for item in items:
-            ann = self._parse_announcement_item(item, course)
-            if ann:
-                announcements.append(ann)
-        
-        return announcements
-    
-    def _extract_announcement_id(self, url: str) -> Optional[str]:
-        """
-        Extract announcement ID from URL.
-        
-        Args:
-            url: URL that may contain announcement ID
-            
-        Returns:
-            str or None: Announcement ID
-        """
-        # Pattern: announcements/msg/SITE_ID/main/ID
-        match = re.search(r'/msg/[^/]+/[^/]+/([a-f0-9-]+)', url)
-        if match:
-            return match.group(1)
-        
-        # Pattern: itemId=ID or id=ID
-        match = re.search(r'(?:itemId|id)=([a-f0-9-]+)', url)
-        if match:
-            return match.group(1)
-        
-        return None
-    
-    def _generate_id(self, title: str, site_id: str) -> str:
-        """
-        Generate a stable ID from title and site.
-        
-        Args:
-            title: Announcement title
-            site_id: Course site ID
-            
-        Returns:
-            str: Generated ID
-        """
-        from hashlib import md5
-        content = f"{site_id}:{title}"
-        return md5(content.encode()).hexdigest()[:12]
+
+        # Parse body - API returns HTML body
+        body = self._clean_html(item.get("body", "") or "")
+
+        # Parse timestamp (Sakai returns epoch milliseconds)
+        posted_at = self._parse_epoch_ms(item.get("createdOn"))
+
+        # Build URL
+        site_id = item.get("siteId", "")
+        url = (
+            f"{self.session.base_url}/portal/site/{site_id}"
+            if site_id
+            else None
+        )
+
+        # Get author
+        author = item.get("createdByDisplayName", "")
+
+        return Announcement(
+            id=str(ann_id),
+            course_code=(
+                course.code
+                if course
+                else self.extract_course_code(site_title)
+            ),
+            course_title=course.title if course else site_title,
+            title=title,
+            content=body,
+            author=author,
+            posted_at=posted_at,
+            url=url,
+        )
+
+    def _parse_epoch_ms(self, epoch_ms) -> Optional[datetime]:
+        """Convert epoch milliseconds to datetime."""
+        if not epoch_ms:
+            return None
+        try:
+            return datetime.fromtimestamp(epoch_ms / 1000, tz=timezone.utc)
+        except (ValueError, TypeError, OSError):
+            return None
+
+    def _clean_html(self, html: str) -> str:
+        """Strip HTML tags and return clean text."""
+        if not html:
+            return ""
+        soup = BeautifulSoup(html, "lxml")
+        return soup.get_text(separator="\n", strip=True)
