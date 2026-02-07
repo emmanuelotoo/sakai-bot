@@ -1,46 +1,19 @@
 # Sakai Bot
 
-Monitors Sakai LMS for new announcements, assignments, and exams — sends Telegram notifications automatically.
+Monitors Sakai LMS for new announcements, assignments, and exams — sends Telegram notifications automatically. Runs every 2 hours via GitHub Actions.
 
-## Features
-
-- Tracks announcements across all courses
-- Monitors assignments and deadlines
-- Detects exams from announcements/calendar
-- Sends Telegram alerts via Bot API
-- Prevents duplicate notifications (Supabase)
-- Runs on schedule via GitHub Actions
-
-## Quick Start
-
-### 1. Install
+## Setup
 
 ```bash
 git clone https://github.com/emmanuelotoo/sakai-bot.git
 cd sakai-bot
 pip install -r requirements.txt
+pip install -e .
+cp .env.example .env   # fill in your credentials
+python -m sakai_bot.main
 ```
 
-### 2. Configure
-
-```bash
-cp .env.example .env
-```
-
-Fill in `.env`:
-
-```env
-SAKAI_USERNAME=your_student_id
-SAKAI_PASSWORD=your_password
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_key
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_CHAT_ID=your_chat_id
-```
-
-### 3. Set Up Supabase
-
-Run in Supabase SQL Editor:
+## Supabase Table
 
 ```sql
 CREATE TABLE sent_notifications (
@@ -54,32 +27,17 @@ CREATE TABLE sent_notifications (
 );
 ```
 
-### 4. Run
+## GitHub Actions Secrets
 
-```bash
-python -m sakai_bot.main
-```
+Add in **Settings → Secrets → Actions**:
 
-## GitHub Actions
-
-Add these secrets in **Settings → Secrets → Actions**:
-
-- `SAKAI_USERNAME`, `SAKAI_PASSWORD`
-- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
-
-The bot runs every 2 hours automatically. Trigger manually via **Actions → Sakai Monitor → Run workflow**.
+`SAKAI_BASE_URL` · `SAKAI_USERNAME` · `SAKAI_PASSWORD` · `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` · `TELEGRAM_BOT_TOKEN` · `TELEGRAM_CHAT_ID`
 
 ## Telegram Setup
 
-1. **Create a bot**: Message [@BotFather](https://t.me/BotFather) on Telegram
-2. Send `/newbot` and follow the prompts
-3. Copy the **API token** it gives you → `TELEGRAM_BOT_TOKEN`
-4. **Get your chat ID**: Message [@userinfobot](https://t.me/userinfobot) or [@getidsbot](https://t.me/getidsbot)
-5. Copy your **chat ID** → `TELEGRAM_CHAT_ID`
-6. **Start your bot**: Open your bot in Telegram and click "Start" (required for the bot to message you)
-
-> 💡 You can also use a group chat ID (add the bot to a group) or channel ID (add the bot as admin).
+1. Message [@BotFather](https://t.me/BotFather), send `/newbot`, copy the token → `TELEGRAM_BOT_TOKEN`
+2. Message [@userinfobot](https://t.me/userinfobot), copy your ID → `TELEGRAM_CHAT_ID`
+3. Open your bot and click **Start**
 
 ## Contributing
 
