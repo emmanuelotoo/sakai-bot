@@ -75,6 +75,10 @@ class Settings(BaseSettings):
         default=None,
         description="Filter courses to this semester (e.g., 'S1-2526'). If not set, all courses are scraped."
     )
+    course_level_filter: Optional[int] = Field(
+        default=None,
+        description="Only include courses at or above this level (e.g., 300 for 300-level). Matches the first digit of the course number."
+    )
     
     @field_validator("sakai_base_url")
     @classmethod

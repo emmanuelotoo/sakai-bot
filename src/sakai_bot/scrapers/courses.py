@@ -72,6 +72,20 @@ class CourseScraper(BaseScraper):
             )
             courses = filtered
 
+        # Filter by course level if configured (e.g., 300 = only 300+ level)
+        level_filter = self.settings.course_level_filter
+        if level_filter and courses:
+            min_digit = str(level_filter)[0]  # e.g., 300 -> "3"
+            before_count = len(courses)
+            courses = [
+                c for c in courses
+                if self._course_meets_level(c.code, min_digit)
+            ]
+            logger.info(
+                f"Filtered to level {level_filter}+: "
+                f"{len(courses)}/{before_count} courses"
+            )
+
         logger.info(f"Found {len(courses)} enrolled courses")
         return courses
 
@@ -107,6 +121,28 @@ class CourseScraper(BaseScraper):
             title=title,
             url=url,
         )
+
+    @staticmethod
+    def _course_meets_level(code: str, min_digit: str) -> bool:
+        """
+        Check if a course code meets the minimum level.
+
+        Extracts the first digit of the course number and compares.
+        E.g., code='CSCD 301', min_digit='3' -> True
+             code='CSCD 201', min_digit='3' -> False
+
+        Args:
+            code: Course code (e.g., 'CSCD 301')
+            min_digit: Minimum first digit (e.g., '3')
+
+        Returns:
+            bool: True if course is at or above the level
+        """
+        import re
+        match = re.search(r'(\d)', code)
+        if match:
+            return match.group(1) >= min_digit
+        return True  # Include if we can't determine level
 
     def get_course_by_code(self, code: str) -> Optional[Course]:
         """

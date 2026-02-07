@@ -71,6 +71,8 @@ jobs:
           # Optional settings
           LOG_LEVEL: ${{ github.event.inputs.debug == 'true' && 'DEBUG' || 'INFO' }}
           TIMEZONE: 'Africa/Accra'
+          CURRENT_SEMESTER: 'S1-2526'
+          COURSE_LEVEL_FILTER: '300'
         
         run: |
           python -m sakai_bot.main
