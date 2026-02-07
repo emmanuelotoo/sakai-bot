@@ -12,8 +12,7 @@ on:
     # Run every 2 hours during typical university hours (Ghana time = UTC)
     - cron: '0 6,8,10,12,14,16,18,20 * * *'
 
-  
-  Manual trigger only - use this to test after adding secrets
+  # Manual trigger - use this to test after adding secrets
   workflow_dispatch:
     inputs:
       debug:
