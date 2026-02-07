@@ -1,20 +1,19 @@
 # Sakai Monitoring Bot - GitHub Actions Workflow
 #
 # Runs the bot on a schedule to check for new announcements,
-# assignments, and exams, then sends WhatsApp notifications.
+# assignments, and exams, then sends Telegram notifications.
 
 name: Sakai Monitor
 
-# TEMPORARILY DISABLED - Uncomment schedule when secrets are configured
-# Required secrets: SAKAI_USERNAME, SAKAI_PASSWORD, WHATSAPP_*, SUPABASE_*
+# Required secrets: SAKAI_USERNAME, SAKAI_PASSWORD, TELEGRAM_*, SUPABASE_*
 
 on:
-  # Schedule disabled until secrets are added
-  # schedule:
-  #   # Run every 2 hours during typical university hours (Ghana time = UTC)
-  #   - cron: '0 6,8,10,12,14,16,18,20 * * *'  # Every 2 hours, 6 AM to 8 PM UTC
+  schedule:
+    # Run every 2 hours during typical university hours (Ghana time = UTC)
+    - cron: '0 6,8,10,12,14,16,18,20 * * *'
+
   
-  # Manual trigger only - use this to test after adding secrets
+  Manual trigger only - use this to test after adding secrets
   workflow_dispatch:
     inputs:
       debug:
@@ -65,10 +64,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           
-          # WhatsApp configuration
-          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
-          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
-          WHATSAPP_RECIPIENT_PHONE: ${{ secrets.WHATSAPP_RECIPIENT_PHONE }}
+          # Telegram configuration
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           
           # Optional settings
           LOG_LEVEL: ${{ github.event.inputs.debug == 'true' && 'DEBUG' || 'INFO' }}
