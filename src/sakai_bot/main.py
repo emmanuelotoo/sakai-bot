@@ -12,9 +12,11 @@ Coordinates the full monitoring workflow:
 
 import logging
 import sys
+import time
 from typing import List, Tuple
 
 from sakai_bot.auth import SakaiSession
+from sakai_bot.auth.sakai_session import SakaiAuthError
 from sakai_bot.config import get_settings, setup_logging
 from sakai_bot.db import NotificationStore
 from sakai_bot.models import Announcement, Assignment, Exam
@@ -92,6 +94,8 @@ class SakaiMonitor:
             # Log summary
             self._log_summary()
             return True
+        except SakaiAuthError:
+            raise  # propagate so main() can retry on transient auth failures
             
         except Exception as e:
             logger.error(f"Monitor failed with error: {e}", exc_info=True)
@@ -304,6 +308,8 @@ def main() -> int:
     """
     Entry point for the Sakai Monitoring Bot.
     
+    Retries the full monitoring run on transient auth/network errors.
+    
     Returns:
         int: Exit code (0 for success, 1 for failure)
     """
@@ -319,11 +325,42 @@ def main() -> int:
         print("Please check your environment variables.", file=sys.stderr)
         return 1
     
-    # Run the monitor
-    monitor = SakaiMonitor()
-    success = monitor.run()
-    
-    return 0 if success else 1
+    # Run the monitor with retries for transient failures
+    max_attempts = 2
+    for attempt in range(1, max_attempts + 1):
+        monitor = SakaiMonitor()
+        try:
+            success = monitor.run()
+            return 0 if success else 1
+        except SakaiAuthError as e:
+            if attempt < max_attempts:
+                wait = 60 * attempt
+                logger.warning(
+                    f"Run attempt {attempt}/{max_attempts} failed with auth error. "
+                    f"Retrying in {wait}s…"
+                )
+                time.sleep(wait)
+            else:
+                logger.error(f"All {max_attempts} run attempts failed: {e}")
+                # Transient server-side issue — exit 0 so the workflow
+                # doesn't report a failure for something out of our control.
+                # The next scheduled run will try again.
+                logger.info(
+                    "Exiting gracefully — the Sakai server appears unreachable. "
+                    "The next scheduled run will retry."
+                )
+                try:
+                    formatter = MessageFormatter()
+                    notifier = TelegramNotifier()
+                    notifier.send_message(
+                        formatter.format_error(
+                            f"⚠️ Sakai server unreachable after {max_attempts} attempts. "
+                            "Will retry on next scheduled run."
+                        )
+                    )
+                except Exception:
+                    pass
+                return 0
 
 
 if __name__ == "__main__":

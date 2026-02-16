@@ -7,6 +7,7 @@ HTML form login at /portal/xlogin.
 
 import logging
 import re
+import time
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -115,19 +116,66 @@ class SakaiSession:
         
         return None
     
+    # Retry configuration for transient network errors
+    LOGIN_MAX_RETRIES = 3
+    LOGIN_RETRY_BACKOFF = 30  # seconds, doubles each retry
+
     def login(self) -> bool:
         """
         Authenticate with Sakai using username/password.
         
         Performs HTML form login at /portal/xlogin.
+        Retries up to LOGIN_MAX_RETRIES times on connection/timeout errors.
         
         Returns:
             bool: True if login successful
             
         Raises:
-            SakaiAuthError: If login fails
+            SakaiAuthError: If login fails after all retries
         """
-        logger.info(f"Attempting login to {self.base_url}")
+        last_error: Optional[Exception] = None
+
+        for attempt in range(1, self.LOGIN_MAX_RETRIES + 1):
+            try:
+                return self._attempt_login(attempt)
+            except requests.exceptions.ConnectionError as e:
+                last_error = e
+            except requests.exceptions.Timeout as e:
+                last_error = e
+            except SakaiAuthError:
+                raise  # credential / structural errors are not retryable
+
+            if attempt < self.LOGIN_MAX_RETRIES:
+                wait = self.LOGIN_RETRY_BACKOFF * (2 ** (attempt - 1))
+                logger.warning(
+                    f"Login attempt {attempt}/{self.LOGIN_MAX_RETRIES} failed "
+                    f"(transient network error). Retrying in {wait}s…"
+                )
+                time.sleep(wait)
+
+        raise SakaiAuthError(
+            f"Login failed after {self.LOGIN_MAX_RETRIES} attempts: {last_error}"
+        )
+
+    def _attempt_login(self, attempt: int = 1) -> bool:
+        """
+        Single login attempt to Sakai.
+        
+        Args:
+            attempt: Current attempt number (for logging)
+            
+        Returns:
+            bool: True if login successful
+            
+        Raises:
+            SakaiAuthError: If login fails due to credentials/structure
+            requests.exceptions.ConnectionError: On network errors
+            requests.exceptions.Timeout: On timeout errors
+        """
+        logger.info(
+            f"Attempting login to {self.base_url} "
+            f"(attempt {attempt}/{self.LOGIN_MAX_RETRIES})"
+        )
         
         try:
             # Step 1: GET the login page to establish session and get any tokens
@@ -176,6 +224,8 @@ class SakaiSession:
                     "Login failed - credentials may be incorrect or login page structure changed"
                 )
                 
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            raise  # let the retry loop in login() handle these
         except requests.exceptions.RequestException as e:
             logger.error(f"Login request failed: {e}")
             raise SakaiAuthError(f"Login request failed: {e}")
