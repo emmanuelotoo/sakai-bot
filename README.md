@@ -48,4 +48,4 @@ Contributions are welcome! Please:
 3. Make your changes
 4. Submit a pull request
 
-![Screenshot 2026-02-24 124927](./src/Screenshot%202026-02-24%20124927.png)
+<img width="1918" height="1006" alt="image" src="src/Screenshot 2026-02-24 124927.png" />
