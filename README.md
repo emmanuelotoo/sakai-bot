@@ -47,3 +47,7 @@ Contributions are welcome! Please:
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
+## Screenshot
+
+![Screenshot 2026-02-24 124927](./Screenshot%202026-02-24%20124927.png)
