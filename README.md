@@ -48,4 +48,6 @@ Contributions are welcome! Please:
 3. Make your changes
 4. Submit a pull request
 
-<img width="1918" height="1006" alt="image" src="src/Screenshot 2026-02-24 124927.png" />
+## Main bot interface
+<img width="1147" height="955" alt="Screenshot 2026-02-24 124927" src="https://github.com/user-attachments/assets/6dd8a8b2-f100-446a-9c89-86152f6941f2" />
+
