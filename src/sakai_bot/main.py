@@ -345,19 +345,15 @@ def main() -> int:
                 # Transient server-side issue — exit 0 so the workflow
                 # doesn't report a failure for something out of our control.
                 # The next scheduled run will try again.
-                logger.info(
-                    "Exiting gracefully — the Sakai server appears unreachable. "
-                    "The next scheduled run will retry."
+                retry_message = (
+                    f"Sakai server unreachable after {max_attempts} attempts. "
+                    "Will retry on next scheduled run."
                 )
+                logger.info(retry_message)
                 try:
                     formatter = MessageFormatter()
                     notifier = TelegramNotifier()
-                    notifier.send_message(
-                        formatter.format_error(
-                            f"⚠️ Sakai server unreachable after {max_attempts} attempts. "
-                            "Will retry on next scheduled run."
-                        )
-                    )
+                    notifier.send_message(formatter.format_error(retry_message))
                 except Exception:
                     pass
                 return 0
