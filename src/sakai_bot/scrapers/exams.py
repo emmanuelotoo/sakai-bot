@@ -9,8 +9,6 @@ Detects exams and quizzes from:
 import logging
 import re
 from datetime import datetime
-from hashlib import md5
-from typing import List, Optional
 
 from sakai_bot.auth.sakai_session import SakaiSession
 from sakai_bot.models import Announcement, Course, Exam
@@ -28,25 +26,42 @@ class ExamDetector(BaseScraper):
     """
 
     EXAM_KEYWORDS = [
-        "exam", "examination", "midterm", "mid-term", "mid term",
-        "final", "finals", "quiz", "quizz", "test", "assessment",
-        "practical", "lab exam", "oral exam", "viva", "defense",
-        "end of semester", "end-of-semester", "eos exam",
-        "continuous assessment", "ca test", "ca exam",
+        "exam",
+        "examination",
+        "midterm",
+        "mid-term",
+        "mid term",
+        "final",
+        "finals",
+        "quiz",
+        "quizz",
+        "test",
+        "assessment",
+        "practical",
+        "lab exam",
+        "oral exam",
+        "viva",
+        "defense",
+        "end of semester",
+        "end-of-semester",
+        "eos exam",
+        "continuous assessment",
+        "ca test",
+        "ca exam",
     ]
 
     DATE_PATTERNS = [
         # January 15, 2024
-        r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
-        r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
-        r'\s+\d{1,2}(?:st|nd|rd|th)?,?\s*\d{4}',
+        r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+        r"Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
+        r"\s+\d{1,2}(?:st|nd|rd|th)?,?\s*\d{4}",
         # 15/01/2024
-        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',
+        r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
     ]
 
     TIME_PATTERNS = [
-        r'\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?',
-        r'\d{1,2}\s*(?:am|pm|AM|PM)',
+        r"\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?",
+        r"\d{1,2}\s*(?:am|pm|AM|PM)",
     ]
 
     def __init__(self, session: SakaiSession):
@@ -55,9 +70,9 @@ class ExamDetector(BaseScraper):
 
     def scrape(
         self,
-        courses: List[Course],
-        announcements: Optional[List[Announcement]] = None,
-    ) -> List[Exam]:
+        courses: list[Course],
+        announcements: list[Announcement] | None = None,
+    ) -> list[Exam]:
         """
         Detect exams from courses and announcements.
 
@@ -68,7 +83,7 @@ class ExamDetector(BaseScraper):
         Returns:
             List[Exam]: Detected exams
         """
-        all_exams: List[Exam] = []
+        all_exams: list[Exam] = []
 
         # Detect from announcements
         if announcements:
@@ -79,7 +94,7 @@ class ExamDetector(BaseScraper):
 
         # Deduplicate by ID
         seen_ids: set = set()
-        unique_exams: List[Exam] = []
+        unique_exams: list[Exam] = []
         for exam in all_exams:
             if exam.id not in seen_ids:
                 seen_ids.add(exam.id)
@@ -88,9 +103,7 @@ class ExamDetector(BaseScraper):
         logger.info(f"Detected {len(unique_exams)} exams/quizzes")
         return unique_exams
 
-    def _detect_from_announcement(
-        self, announcement: Announcement
-    ) -> Optional[Exam]:
+    def _detect_from_announcement(self, announcement: Announcement) -> Exam | None:
         """
         Detect exam from announcement content.
 
@@ -150,7 +163,7 @@ class ExamDetector(BaseScraper):
             return "continuous_assessment"
         return "exam"
 
-    def _extract_exam_date(self, text: str) -> Optional[datetime]:
+    def _extract_exam_date(self, text: str) -> datetime | None:
         """Extract date from text using patterns."""
         if not text:
             return None
@@ -160,7 +173,7 @@ class ExamDetector(BaseScraper):
                 return self.parse_date(match.group(0))
         return None
 
-    def _extract_exam_time(self, text: str) -> Optional[str]:
+    def _extract_exam_time(self, text: str) -> str | None:
         """Extract time from text."""
         if not text:
             return None
@@ -170,12 +183,12 @@ class ExamDetector(BaseScraper):
                 return match.group(0).strip()
         return None
 
-    def _extract_location(self, text: str) -> Optional[str]:
+    def _extract_location(self, text: str) -> str | None:
         """Extract location/venue from text."""
         if not text:
             return None
         patterns = [
-            r'(?:venue|location|room|hall|lab)[\s:]+([^\n,.]+)',
+            r"(?:venue|location|room|hall|lab)[\s:]+([^\n,.]+)",
         ]
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
