@@ -7,7 +7,6 @@ announcements from all enrolled courses.
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
 
 from bs4 import BeautifulSoup
 
@@ -31,7 +30,7 @@ class AnnouncementScraper(BaseScraper):
         """Initialize announcement scraper."""
         super().__init__(session)
 
-    def scrape(self, courses: List[Course]) -> List[Announcement]:
+    def scrape(self, courses: list[Course]) -> list[Announcement]:
         """
         Scrape announcements from all provided courses.
 
@@ -41,7 +40,7 @@ class AnnouncementScraper(BaseScraper):
         Returns:
             List[Announcement]: All found announcements
         """
-        all_announcements: List[Announcement] = []
+        all_announcements: list[Announcement] = []
         seen_ids: set = set()
 
         # Scrape per-course announcements via REST API
@@ -52,13 +51,9 @@ class AnnouncementScraper(BaseScraper):
                     if ann.id not in seen_ids:
                         seen_ids.add(ann.id)
                         all_announcements.append(ann)
-                logger.debug(
-                    f"Found {len(announcements)} announcements in {course.code}"
-                )
+                logger.debug(f"Found {len(announcements)} announcements in {course.code}")
             except Exception as e:
-                logger.error(
-                    f"Error scraping announcements for {course.code}: {e}"
-                )
+                logger.error(f"Error scraping announcements for {course.code}: {e}")
                 continue
 
         # Also fetch user-level announcements (catches cross-listed/global ones)
@@ -74,9 +69,7 @@ class AnnouncementScraper(BaseScraper):
         logger.info(f"Total announcements scraped: {len(all_announcements)}")
         return all_announcements
 
-    def _scrape_course_announcements(
-        self, course: Course
-    ) -> List[Announcement]:
+    def _scrape_course_announcements(self, course: Course) -> list[Announcement]:
         """
         Scrape announcements for a single course via the REST API.
 
@@ -88,16 +81,13 @@ class AnnouncementScraper(BaseScraper):
         """
         try:
             data = self.session.get_json(
-                f"/direct/announcement/site/{course.site_id}.json"
-                f"?n=100&_limit=100"
+                f"/direct/announcement/site/{course.site_id}.json" f"?n=100&_limit=100"
             )
         except Exception as e:
-            logger.debug(
-                f"Could not get announcements for {course.code}: {e}"
-            )
+            logger.debug(f"Could not get announcements for {course.code}: {e}")
             return []
 
-        announcements: List[Announcement] = []
+        announcements: list[Announcement] = []
         for item in data.get("announcement_collection", []):
             ann = self._parse_api_announcement(item, course)
             if ann:
@@ -105,9 +95,7 @@ class AnnouncementScraper(BaseScraper):
 
         return announcements
 
-    def _scrape_user_announcements(
-        self, courses: List[Course]
-    ) -> List[Announcement]:
+    def _scrape_user_announcements(self, courses: list[Course]) -> list[Announcement]:
         """
         Scrape the user-level announcements feed.
 
@@ -118,9 +106,7 @@ class AnnouncementScraper(BaseScraper):
             List[Announcement]: User-level announcements
         """
         try:
-            data = self.session.get_json(
-                "/direct/announcement/user.json?n=100&_limit=100"
-            )
+            data = self.session.get_json("/direct/announcement/user.json?n=100&_limit=100")
         except Exception:
             return []
 
@@ -130,7 +116,7 @@ class AnnouncementScraper(BaseScraper):
             site_map[c.site_id] = c
             site_map[c.title] = c
 
-        announcements: List[Announcement] = []
+        announcements: list[Announcement] = []
         for item in data.get("announcement_collection", []):
             site_id = item.get("siteId", "")
             site_title = item.get("siteTitle", "")
@@ -140,9 +126,7 @@ class AnnouncementScraper(BaseScraper):
             if not course:
                 continue
 
-            ann = self._parse_api_announcement(
-                item, course, site_title=site_title
-            )
+            ann = self._parse_api_announcement(item, course, site_title=site_title)
             if ann:
                 announcements.append(ann)
 
@@ -151,9 +135,9 @@ class AnnouncementScraper(BaseScraper):
     def _parse_api_announcement(
         self,
         item: dict,
-        course: Optional[Course],
+        course: Course | None,
         site_title: str = "",
-    ) -> Optional[Announcement]:
+    ) -> Announcement | None:
         """
         Parse an announcement from the REST API response.
 
@@ -179,22 +163,14 @@ class AnnouncementScraper(BaseScraper):
 
         # Build URL
         site_id = item.get("siteId", "")
-        url = (
-            f"{self.session.base_url}/portal/site/{site_id}"
-            if site_id
-            else None
-        )
+        url = f"{self.session.base_url}/portal/site/{site_id}" if site_id else None
 
         # Get author
         author = item.get("createdByDisplayName", "")
 
         return Announcement(
             id=str(ann_id),
-            course_code=(
-                course.code
-                if course
-                else self.extract_course_code(site_title)
-            ),
+            course_code=(course.code if course else self.extract_course_code(site_title)),
             course_title=course.title if course else site_title,
             title=title,
             content=body,
@@ -203,7 +179,7 @@ class AnnouncementScraper(BaseScraper):
             url=url,
         )
 
-    def _parse_epoch_ms(self, epoch_ms) -> Optional[datetime]:
+    def _parse_epoch_ms(self, epoch_ms) -> datetime | None:
         """Convert epoch milliseconds to datetime."""
         if not epoch_ms:
             return None
