@@ -13,7 +13,6 @@ Coordinates the full monitoring workflow:
 import logging
 import sys
 import time
-from typing import List, Tuple
 
 from sakai_bot.auth import SakaiSession
 from sakai_bot.auth.sakai_session import SakaiAuthError
@@ -31,21 +30,38 @@ from sakai_bot.scrapers import (
 logger = logging.getLogger(__name__)
 
 
+def notify_fallback(telegram, reason: str | None, count: int) -> bool:
+    """
+    Send a Telegram heads-up when course filtering had to fall back.
+
+    Returns True if a message was sent, False otherwise. Never raises.
+    """
+    if not reason:
+        return False
+    msg = f"⚠️ Course filter fallback: {reason}. " f"Monitoring {count} course(s) this run."
+    logger.warning(msg)
+    try:
+        telegram.send_message(msg)
+        return True
+    except Exception:
+        return False
+
+
 class SakaiMonitor:
     """
     Main orchestrator for Sakai monitoring.
-    
+
     Coordinates all components to provide end-to-end monitoring
     with deduplication and notifications.
     """
-    
+
     def __init__(self):
         """Initialize the monitor with all components."""
         self.settings = get_settings()
         self.notification_store = NotificationStore()
         self.telegram = TelegramNotifier()
         self.formatter = MessageFormatter()
-        
+
         # Track stats
         self.stats = {
             "courses_scraped": 0,
@@ -55,207 +71,194 @@ class SakaiMonitor:
             "notifications_sent": 0,
             "errors": 0,
         }
-    
+
     def run(self) -> bool:
         """
         Execute full monitoring workflow.
-        
+
         Returns:
             bool: True if completed successfully
         """
         logger.info("=" * 50)
         logger.info("Starting Sakai Monitoring Bot")
         logger.info("=" * 50)
-        
+
         try:
             # Use context manager for automatic login/logout
             with SakaiSession() as session:
                 # Step 1: Get enrolled courses
                 courses = self._scrape_courses(session)
                 if not courses:
-                    logger.warning("No courses found. Check login credentials.")
+                    logger.warning(
+                        "Logged in, but found no enrolled sites. "
+                        "Check your Sakai enrollment or credentials."
+                    )
                     return False
-                
+
                 self.stats["courses_scraped"] = len(courses)
                 logger.info(f"Found {len(courses)} enrolled courses")
-                
+
                 # Step 2: Scrape announcements
                 new_announcements = self._process_announcements(session, courses)
-                
+
                 # Step 3: Scrape assignments
                 new_assignments = self._process_assignments(session, courses)
-                
+
                 # Step 4: Detect exams
                 new_exams = self._process_exams(session, courses, new_announcements)
-                
+
                 # Step 5: Send notifications
                 self._send_notifications(new_announcements, new_assignments, new_exams)
-            
+
             # Log summary
             self._log_summary()
             return True
         except SakaiAuthError:
             raise  # propagate so main() can retry on transient auth failures
-            
+
         except Exception as e:
             logger.error(f"Monitor failed with error: {e}", exc_info=True)
             self.stats["errors"] += 1
-            
+
             # Try to send error notification
             try:
                 error_msg = self.formatter.format_error(str(e))
                 self.telegram.send_message(error_msg)
             except Exception:
                 pass  # Don't fail on notification error
-            
+
             return False
-    
-    def _scrape_courses(self, session: SakaiSession) -> List:
-        """Scrape enrolled courses."""
+
+    def _scrape_courses(self, session: SakaiSession) -> list:
+        """Scrape enrolled courses, warning if filtering had to fall back."""
         scraper = CourseScraper(session)
-        return scraper.scrape()
-    
-    def _process_announcements(
-        self, 
-        session: SakaiSession, 
-        courses: List
-    ) -> List[Announcement]:
+        courses = scraper.scrape()
+        notify_fallback(self.telegram, scraper.fallback_reason, len(courses))
+        return courses
+
+    def _process_announcements(self, session: SakaiSession, courses: list) -> list[Announcement]:
         """
         Scrape and filter new announcements.
-        
+
         Args:
             session: Authenticated session
             courses: List of courses to scrape
-            
+
         Returns:
             List of new/updated announcements
         """
         scraper = AnnouncementScraper(session)
         all_announcements = scraper.scrape(courses)
         self.stats["announcements_found"] = len(all_announcements)
-        
+
         # Filter to new/updated only
         new_announcements = []
         for announcement in all_announcements:
             if not self.notification_store.has_been_sent(announcement):
                 new_announcements.append(announcement)
-        
+
         logger.info(
-            f"Announcements: {len(all_announcements)} total, "
-            f"{len(new_announcements)} new"
+            f"Announcements: {len(all_announcements)} total, " f"{len(new_announcements)} new"
         )
         return new_announcements
-    
-    def _process_assignments(
-        self, 
-        session: SakaiSession, 
-        courses: List
-    ) -> List[Assignment]:
+
+    def _process_assignments(self, session: SakaiSession, courses: list) -> list[Assignment]:
         """
         Scrape and filter new assignments.
-        
+
         Args:
             session: Authenticated session
             courses: List of courses to scrape
-            
+
         Returns:
             List of new/updated assignments
         """
         scraper = AssignmentScraper(session)
         all_assignments = scraper.scrape(courses)
         self.stats["assignments_found"] = len(all_assignments)
-        
+
         # Filter to new/updated only
         new_assignments = []
         for assignment in all_assignments:
             if not self.notification_store.has_been_sent(assignment):
                 new_assignments.append(assignment)
-        
-        logger.info(
-            f"Assignments: {len(all_assignments)} total, "
-            f"{len(new_assignments)} new"
-        )
+
+        logger.info(f"Assignments: {len(all_assignments)} total, " f"{len(new_assignments)} new")
         return new_assignments
-    
+
     def _process_exams(
-        self, 
-        session: SakaiSession, 
-        courses: List,
-        announcements: List[Announcement]
-    ) -> List[Exam]:
+        self, session: SakaiSession, courses: list, announcements: list[Announcement]
+    ) -> list[Exam]:
         """
         Detect and filter new exams.
-        
+
         Args:
             session: Authenticated session
             courses: List of courses
             announcements: Already scraped announcements for keyword detection
-            
+
         Returns:
             List of new exam detections
         """
         detector = ExamDetector(session)
-        
+
         # Pass all announcements (not just new) for comprehensive detection
         # but we'll deduplicate the results
         all_exams = detector.scrape(courses, announcements)
         self.stats["exams_found"] = len(all_exams)
-        
+
         # Filter to new only
         new_exams = []
         for exam in all_exams:
             if not self.notification_store.has_been_sent(exam):
                 new_exams.append(exam)
-        
-        logger.info(
-            f"Exams: {len(all_exams)} total, "
-            f"{len(new_exams)} new"
-        )
+
+        logger.info(f"Exams: {len(all_exams)} total, " f"{len(new_exams)} new")
         return new_exams
-    
+
     def _send_notifications(
         self,
-        announcements: List[Announcement],
-        assignments: List[Assignment],
-        exams: List[Exam],
+        announcements: list[Announcement],
+        assignments: list[Assignment],
+        exams: list[Exam],
     ) -> None:
         """
         Send Telegram notifications for new items.
-        
+
         Args:
             announcements: New announcements to notify
             assignments: New assignments to notify
             exams: New exams to notify
         """
         total_new = len(announcements) + len(assignments) + len(exams)
-        
+
         if total_new == 0:
             logger.info("No new items to notify")
             return
-        
+
         logger.info(f"Sending {total_new} notifications...")
-        
+
         # Send announcements
         for announcement in announcements:
             self._send_and_record(
                 announcement,
                 self.formatter.format_announcement(announcement),
             )
-        
+
         # Send assignments
         for assignment in assignments:
             self._send_and_record(
                 assignment,
                 self.formatter.format_assignment(assignment),
             )
-        
+
         # Send exams
         for exam in exams:
             self._send_and_record(
                 exam,
                 self.formatter.format_exam(exam),
             )
-        
+
         # Send summary if multiple items
         if total_new > 1:
             summary = self.formatter.format_summary(
@@ -264,15 +267,15 @@ class SakaiMonitor:
                 exams_count=len(exams),
             )
             self.telegram.send_message(summary)
-    
+
     def _send_and_record(self, item, message: str) -> bool:
         """
         Send notification and record if successful.
-        
+
         Args:
             item: The item being notified (Announcement, Assignment, or Exam)
             message: Formatted message to send
-            
+
         Returns:
             bool: True if sent and recorded successfully
         """
@@ -289,7 +292,7 @@ class SakaiMonitor:
             logger.error(f"Error sending notification: {e}")
             self.stats["errors"] += 1
             return False
-    
+
     def _log_summary(self) -> None:
         """Log execution summary."""
         logger.info("=" * 50)
@@ -307,15 +310,15 @@ class SakaiMonitor:
 def main() -> int:
     """
     Entry point for the Sakai Monitoring Bot.
-    
+
     Retries the full monitoring run on transient auth/network errors.
-    
+
     Returns:
         int: Exit code (0 for success, 1 for failure)
     """
     # Setup logging
     setup_logging()
-    
+
     try:
         # Validate configuration early
         settings = get_settings()
@@ -324,7 +327,7 @@ def main() -> int:
         print(f"Configuration error: {e}", file=sys.stderr)
         print("Please check your environment variables.", file=sys.stderr)
         return 1
-    
+
     # Run the monitor with retries for transient failures
     max_attempts = 2
     for attempt in range(1, max_attempts + 1):
