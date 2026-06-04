@@ -1,7 +1,7 @@
 """
 Sakai Monitoring Bot
 
-Automated monitoring for Sakai LMS - tracks announcements, assignments, 
+Automated monitoring for Sakai LMS - tracks announcements, assignments,
 and exams across all enrolled courses and sends WhatsApp notifications.
 """
 
