@@ -7,7 +7,6 @@ assignments and deadlines from all enrolled courses.
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
 
 from bs4 import BeautifulSoup
 
@@ -30,7 +29,7 @@ class AssignmentScraper(BaseScraper):
         """Initialize assignment scraper."""
         super().__init__(session)
 
-    def scrape(self, courses: List[Course]) -> List[Assignment]:
+    def scrape(self, courses: list[Course]) -> list[Assignment]:
         """
         Scrape assignments from all provided courses.
 
@@ -40,7 +39,7 @@ class AssignmentScraper(BaseScraper):
         Returns:
             List[Assignment]: All found assignments
         """
-        all_assignments: List[Assignment] = []
+        all_assignments: list[Assignment] = []
         seen_ids: set = set()
 
         # Build site_id -> course map
@@ -70,16 +69,12 @@ class AssignmentScraper(BaseScraper):
                             seen_ids.add(a.id)
                             all_assignments.append(a)
                 except Exception as exc:
-                    logger.error(
-                        f"Error scraping assignments for {course.code}: {exc}"
-                    )
+                    logger.error(f"Error scraping assignments for {course.code}: {exc}")
 
         logger.info(f"Total assignments scraped: {len(all_assignments)}")
         return all_assignments
 
-    def _scrape_course_assignments(
-        self, course: Course
-    ) -> List[Assignment]:
+    def _scrape_course_assignments(self, course: Course) -> list[Assignment]:
         """
         Scrape assignments for a single course via the REST API.
 
@@ -90,17 +85,13 @@ class AssignmentScraper(BaseScraper):
             List[Assignment]: Assignments from this course
         """
         try:
-            data = self.session.get_json(
-                f"/direct/assignment/site/{course.site_id}.json"
-            )
+            data = self.session.get_json(f"/direct/assignment/site/{course.site_id}.json")
         except Exception as e:
-            logger.debug(
-                f"Could not get assignments for {course.code}: {e}"
-            )
+            logger.debug(f"Could not get assignments for {course.code}: {e}")
             return []
 
         site_map = {course.site_id: course}
-        assignments: List[Assignment] = []
+        assignments: list[Assignment] = []
         for item in data.get("assignment_collection", []):
             a = self._parse_api_assignment(item, site_map)
             if a:
@@ -112,7 +103,7 @@ class AssignmentScraper(BaseScraper):
         self,
         item: dict,
         site_map: dict,
-    ) -> Optional[Assignment]:
+    ) -> Assignment | None:
         """
         Parse an assignment from the REST API response.
 
@@ -157,11 +148,7 @@ class AssignmentScraper(BaseScraper):
 
         # Build URL
         site_id = item.get("context", "")
-        url = (
-            f"{self.session.base_url}/portal/site/{site_id}"
-            if site_id
-            else None
-        )
+        url = f"{self.session.base_url}/portal/site/{site_id}" if site_id else None
 
         return Assignment(
             id=str(assign_id),
@@ -177,7 +164,7 @@ class AssignmentScraper(BaseScraper):
             url=url,
         )
 
-    def _parse_date_field(self, value) -> Optional[datetime]:
+    def _parse_date_field(self, value) -> datetime | None:
         """Parse a date field that could be epoch dict, ISO string, or epoch ms."""
         if not value:
             return None
@@ -211,8 +198,8 @@ class AssignmentScraper(BaseScraper):
     def _determine_status(
         self,
         item: dict,
-        due_date: Optional[datetime],
-        close_date: Optional[datetime],
+        due_date: datetime | None,
+        close_date: datetime | None,
     ) -> AssignmentStatus:
         """Determine assignment status from API data."""
         # Check submission status from API
