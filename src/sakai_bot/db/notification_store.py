@@ -7,7 +7,7 @@ sending duplicate alerts for the same content.
 
 import logging
 from datetime import datetime
-from typing import Optional, Union
+from typing import Union
 
 from supabase import Client
 
@@ -32,36 +32,36 @@ TABLE_NAME = "sent_notifications"
 class NotificationStore:
     """
     Manages sent notification records in Supabase for deduplication.
-    
+
     Uses a combination of:
     - dedup_key: Stable identifier (e.g., "announcement:12345")
     - content_hash: Hash of content to detect updates
-    
+
     A notification is considered "new" if:
     1. The dedup_key doesn't exist in the database, OR
     2. The dedup_key exists but content_hash has changed (content was updated)
-    
+
     Falls back to an in-memory set if the Supabase table doesn't exist,
     so the bot still works without the database (just no persistence).
     """
-    
-    def __init__(self, client: Optional[Client] = None):
+
+    def __init__(self, client: Client | None = None):
         """
         Initialize the notification store.
-        
+
         Args:
             client: Optional Supabase client, will use default if not provided
         """
         self.client = client or get_supabase_client()
         self.table = self.client.table(TABLE_NAME)
-        self._table_exists: Optional[bool] = None
+        self._table_exists: bool | None = None
         self._memory_store: set = set()  # fallback
-    
+
     def _check_table(self) -> bool:
         """Check if the Supabase table exists (cached)."""
         if self._table_exists is not None:
             return self._table_exists
-        
+
         try:
             self.table.select("dedup_key").limit(1).execute()
             self._table_exists = True
@@ -72,16 +72,16 @@ class NotificationStore:
                 "Create the table in Supabase SQL Editor — see README for SQL."
             )
             self._table_exists = False
-        
+
         return self._table_exists
-    
+
     def has_been_sent(self, item: NotifiableItem) -> bool:
         """
         Check if a notification has already been sent for this item.
-        
+
         Args:
             item: The item to check (Announcement, Assignment, or Exam)
-            
+
         Returns:
             bool: True if this exact content has already been sent
         """
@@ -89,19 +89,18 @@ class NotificationStore:
             # Fallback: in-memory dedup (only within this run)
             key = f"{item.dedup_key}:{item.content_hash}"
             return key in self._memory_store
-        
+
         try:
             result = (
-                self.table
-                .select("dedup_key, content_hash")
+                self.table.select("dedup_key, content_hash")
                 .eq("dedup_key", item.dedup_key)
                 .execute()
             )
-            
+
             if not result.data:
                 # Never sent before
                 return False
-            
+
             # Check if content has changed (updated item)
             existing = result.data[0]
             if existing["content_hash"] != item.content_hash:
@@ -110,33 +109,33 @@ class NotificationStore:
                     f"{existing['content_hash']} -> {item.content_hash}"
                 )
                 return False
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Error checking notification status: {e}")
             # Fail open - assume not sent to avoid missing notifications
             return False
-    
+
     def mark_as_sent(self, item: NotifiableItem) -> bool:
         """
         Record that a notification has been sent for this item.
-        
+
         Uses upsert to handle both new items and updates.
-        
+
         Args:
             item: The item that was sent
-            
+
         Returns:
             bool: True if successfully recorded
         """
         # Always record in memory
         key = f"{item.dedup_key}:{item.content_hash}"
         self._memory_store.add(key)
-        
+
         if not self._check_table():
             return True
-        
+
         try:
             record = SentNotification(
                 notification_type=item.notification_type,
@@ -146,74 +145,67 @@ class NotificationStore:
                 title=item.title,
                 sent_at=datetime.utcnow(),
             )
-            
+
             # Upsert based on dedup_key
             data = record.model_dump(exclude={"id"})
             # Convert datetime to ISO string for JSON serialization
             if isinstance(data.get("sent_at"), datetime):
                 data["sent_at"] = data["sent_at"].isoformat()
-            self.table.upsert(
-                data,
-                on_conflict="dedup_key"
-            ).execute()
-            
+            self.table.upsert(data, on_conflict="dedup_key").execute()
+
             logger.debug(f"Marked as sent: {item.dedup_key}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error marking notification as sent: {e}")
             return False
-    
-    def get_sent_count(self, notification_type: Optional[NotificationType] = None) -> int:
+
+    def get_sent_count(self, notification_type: NotificationType | None = None) -> int:
         """
         Get count of sent notifications.
-        
+
         Args:
             notification_type: Optional filter by type
-            
+
         Returns:
             int: Number of sent notifications
         """
         try:
             query = self.table.select("id", count="exact")
-            
+
             if notification_type:
                 query = query.eq("notification_type", notification_type.value)
-            
+
             result = query.execute()
             return result.count or 0
-            
+
         except Exception as e:
             logger.error(f"Error getting sent count: {e}")
             return 0
-    
+
     def clear_old_records(self, days: int = 90) -> int:
         """
         Clear notification records older than specified days.
-        
+
         Useful for periodic cleanup to keep the table manageable.
-        
+
         Args:
             days: Delete records older than this many days
-            
+
         Returns:
             int: Number of records deleted
         """
         try:
             from datetime import timedelta
+
             cutoff = datetime.utcnow() - timedelta(days=days)
-            
-            result = (
-                self.table
-                .delete()
-                .lt("sent_at", cutoff.isoformat())
-                .execute()
-            )
-            
+
+            result = self.table.delete().lt("sent_at", cutoff.isoformat()).execute()
+
             deleted = len(result.data) if result.data else 0
             logger.info(f"Cleared {deleted} notification records older than {days} days")
             return deleted
-            
+
         except Exception as e:
             logger.error(f"Error clearing old records: {e}")
             return 0
