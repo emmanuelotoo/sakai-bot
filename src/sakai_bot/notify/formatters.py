@@ -6,7 +6,7 @@ Formats scraped data into clean, readable Telegram messages.
 
 from datetime import datetime, timezone
 
-from sakai_bot.models import Announcement, Assignment, Exam
+from sakai_bot.models import Announcement, Assignment, Exam, Resource
 
 
 class MessageFormatter:
@@ -231,11 +231,152 @@ class MessageFormatter:
         return "\n".join(lines)
 
     @classmethod
+    def format_reminder(
+        cls,
+        item: Assignment | Exam,
+        due: datetime,
+        hours_left: float,
+    ) -> str:
+        """
+        Format a deadline reminder for an assignment or exam.
+
+        Args:
+            item: The assignment or exam being reminded about
+            due: The deadline (timezone-aware)
+            hours_left: Hours remaining until the deadline
+
+        Returns:
+            str: Formatted message string
+        """
+        if hours_left >= 24:
+            time_left = f"about {int(round(hours_left / 24))} day(s)"
+            urgency = "🟡"
+        elif hours_left >= 6:
+            time_left = f"about {int(round(hours_left))} hours"
+            urgency = "🟠"
+        else:
+            time_left = f"about {int(round(hours_left))} hour(s)"
+            urgency = "🔴"
+
+        kind = "EXAM" if isinstance(item, Exam) else "ASSIGNMENT"
+
+        lines = [
+            f"⏰ *{kind} REMINDER* {urgency}",
+            "",
+            f"📚 *Course:* {item.course_code}",
+            f"📝 *Title:* {item.title}",
+            f"📅 *Due:* {cls._format_datetime(due)}",
+            f"⏳ *Time left:* {time_left}",
+        ]
+
+        if isinstance(item, Exam):
+            if item.exam_time:
+                lines.append(f"🕐 *Time:* {item.exam_time}")
+            if item.location:
+                lines.append(f"📍 *Location:* {item.location}")
+
+        if item.url:
+            lines.extend(["", f"🔗 View: {item.url}"])
+
+        return "\n".join(lines)
+
+    @classmethod
+    def format_resource(cls, resource: Resource) -> str:
+        """
+        Format a new course file notification.
+
+        Args:
+            resource: The uploaded resource
+
+        Returns:
+            str: Formatted message string
+        """
+        lines = [
+            "📁 *NEW COURSE FILE*",
+            "",
+            f"📚 *Course:* {resource.course_code}",
+            f"📄 *File:* {resource.title}",
+        ]
+
+        if resource.container:
+            lines.append(f"🗂 *Folder:* {resource.container}")
+
+        if resource.author:
+            lines.append(f"👤 *Uploaded by:* {resource.author}")
+
+        if resource.modified_at:
+            lines.append(f"🕐 *Uploaded:* {cls._format_datetime(resource.modified_at)}")
+
+        if resource.size_bytes:
+            lines.append(f"💾 *Size:* {cls._format_size(resource.size_bytes)}")
+
+        if resource.url:
+            lines.extend(["", f"🔗 Download: {resource.url}"])
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _format_size(size_bytes: int) -> str:
+        """Format a file size in human-readable units."""
+        size = float(size_bytes)
+        for unit in ("B", "KB", "MB", "GB"):
+            if size < 1024 or unit == "GB":
+                return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size_bytes} B"
+
+    @classmethod
+    def format_digest(
+        cls,
+        assignments: list[Assignment],
+        exams: list[Exam],
+    ) -> str:
+        """
+        Format the weekly digest of upcoming deadlines.
+
+        Args:
+            assignments: Assignments due in the coming week, sorted by date
+            exams: Exams scheduled in the coming week, sorted by date
+
+        Returns:
+            str: Formatted message string
+        """
+        lines = [
+            "🗓 *WEEKLY DIGEST — The Week Ahead*",
+            "",
+        ]
+
+        if not assignments and not exams:
+            lines.append("No deadlines found for the coming week. 🎉")
+            return "\n".join(lines)
+
+        if assignments:
+            lines.append("📋 *Assignments due:*")
+            for a in assignments:
+                lines.append(f"• {cls._format_date(a.due_date)} — {a.course_code}: {a.title}")
+            lines.append("")
+
+        if exams:
+            lines.append("🚨 *Exams & quizzes:*")
+            for e in exams:
+                entry = f"• {cls._format_date(e.exam_date)} — {e.course_code}: {e.title}"
+                if e.exam_time:
+                    entry += f" ({e.exam_time})"
+                lines.append(entry)
+            lines.append("")
+
+        total = len(assignments) + len(exams)
+        lines.append(f"_Total: {total} deadline(s) in the next 7 days_")
+
+        return "\n".join(lines)
+
+    @classmethod
     def format_summary(
         cls,
         announcements_count: int = 0,
         assignments_count: int = 0,
         exams_count: int = 0,
+        resources_count: int = 0,
     ) -> str:
         """
         Format a summary message after a monitoring run.
@@ -244,11 +385,12 @@ class MessageFormatter:
             announcements_count: Number of new announcements
             assignments_count: Number of new assignments
             exams_count: Number of new exams detected
+            resources_count: Number of new course files
 
         Returns:
             str: Formatted summary message
         """
-        total = announcements_count + assignments_count + exams_count
+        total = announcements_count + assignments_count + exams_count + resources_count
 
         if total == 0:
             return "✅ *Sakai Bot Check Complete*\n\nNo new updates found."
@@ -264,6 +406,8 @@ class MessageFormatter:
             lines.append(f"📋 {assignments_count} new assignment(s)")
         if exams_count:
             lines.append(f"🚨 {exams_count} exam/quiz alert(s)")
+        if resources_count:
+            lines.append(f"📁 {resources_count} new course file(s)")
 
         lines.extend(
             [
