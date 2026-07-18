@@ -7,7 +7,6 @@ sending duplicate alerts for the same content.
 
 import logging
 from datetime import datetime
-from typing import Union
 
 from supabase import Client
 
@@ -17,13 +16,15 @@ from sakai_bot.models import (
     Assignment,
     Exam,
     NotificationType,
+    Resource,
     SentNotification,
+    SyntheticItem,
 )
 
 logger = logging.getLogger(__name__)
 
 # Type alias for items that can be deduplicated
-NotifiableItem = Union[Announcement, Assignment, Exam]
+NotifiableItem = Announcement | Assignment | Exam | Resource | SyntheticItem
 
 # Table name in Supabase
 TABLE_NAME = "sent_notifications"
