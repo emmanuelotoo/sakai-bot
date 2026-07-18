@@ -18,13 +18,19 @@ from sakai_bot.auth import SakaiSession
 from sakai_bot.auth.sakai_session import SakaiAuthError
 from sakai_bot.config import get_settings, setup_logging
 from sakai_bot.db import NotificationStore
-from sakai_bot.models import Announcement, Assignment, Exam
-from sakai_bot.notify import MessageFormatter, TelegramNotifier
+from sakai_bot.models import Announcement, Assignment, Exam, Resource
+from sakai_bot.notify import (
+    DigestService,
+    MessageFormatter,
+    ReminderService,
+    TelegramNotifier,
+)
 from sakai_bot.scrapers import (
     AnnouncementScraper,
     AssignmentScraper,
     CourseScraper,
     ExamDetector,
+    ResourceScraper,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,7 +74,9 @@ class SakaiMonitor:
             "announcements_found": 0,
             "assignments_found": 0,
             "exams_found": 0,
+            "resources_found": 0,
             "notifications_sent": 0,
+            "reminders_sent": 0,
             "errors": 0,
         }
 
@@ -99,16 +107,28 @@ class SakaiMonitor:
                 logger.info(f"Found {len(courses)} enrolled courses")
 
                 # Step 2: Scrape announcements
-                new_announcements = self._process_announcements(session, courses)
+                all_announcements, new_announcements = self._process_announcements(session, courses)
 
                 # Step 3: Scrape assignments
-                new_assignments = self._process_assignments(session, courses)
+                all_assignments, new_assignments = self._process_assignments(session, courses)
 
-                # Step 4: Detect exams
-                new_exams = self._process_exams(session, courses, new_announcements)
+                # Step 4: Detect exams (from ALL announcements, so exams
+                # announced weeks ago still feed reminders and the digest)
+                all_exams, new_exams = self._process_exams(session, courses, all_announcements)
 
-                # Step 5: Send notifications
-                self._send_notifications(new_announcements, new_assignments, new_exams)
+                # Step 5: Scrape new course resources
+                new_resources = self._process_resources(session, courses)
+
+                # Step 6: Send notifications for new items
+                self._send_notifications(
+                    new_announcements, new_assignments, new_exams, new_resources
+                )
+
+                # Step 7: Deadline reminders (24h/3h before due)
+                self._send_reminders(all_assignments, all_exams)
+
+                # Step 8: Weekly digest (Sunday evenings)
+                self._maybe_send_digest(all_assignments, all_exams)
 
             # Log summary
             self._log_summary()
@@ -136,16 +156,18 @@ class SakaiMonitor:
         notify_fallback(self.telegram, scraper.fallback_reason, len(courses))
         return courses
 
-    def _process_announcements(self, session: SakaiSession, courses: list) -> list[Announcement]:
+    def _process_announcements(
+        self, session: SakaiSession, courses: list
+    ) -> tuple[list[Announcement], list[Announcement]]:
         """
-        Scrape and filter new announcements.
+        Scrape announcements and identify new ones.
 
         Args:
             session: Authenticated session
             courses: List of courses to scrape
 
         Returns:
-            List of new/updated announcements
+            Tuple of (all announcements, new/updated announcements)
         """
         scraper = AnnouncementScraper(session)
         all_announcements = scraper.scrape(courses)
@@ -160,18 +182,20 @@ class SakaiMonitor:
         logger.info(
             f"Announcements: {len(all_announcements)} total, " f"{len(new_announcements)} new"
         )
-        return new_announcements
+        return all_announcements, new_announcements
 
-    def _process_assignments(self, session: SakaiSession, courses: list) -> list[Assignment]:
+    def _process_assignments(
+        self, session: SakaiSession, courses: list
+    ) -> tuple[list[Assignment], list[Assignment]]:
         """
-        Scrape and filter new assignments.
+        Scrape assignments and identify new ones.
 
         Args:
             session: Authenticated session
             courses: List of courses to scrape
 
         Returns:
-            List of new/updated assignments
+            Tuple of (all assignments, new/updated assignments)
         """
         scraper = AssignmentScraper(session)
         all_assignments = scraper.scrape(courses)
@@ -184,21 +208,21 @@ class SakaiMonitor:
                 new_assignments.append(assignment)
 
         logger.info(f"Assignments: {len(all_assignments)} total, " f"{len(new_assignments)} new")
-        return new_assignments
+        return all_assignments, new_assignments
 
     def _process_exams(
         self, session: SakaiSession, courses: list, announcements: list[Announcement]
-    ) -> list[Exam]:
+    ) -> tuple[list[Exam], list[Exam]]:
         """
-        Detect and filter new exams.
+        Detect exams and identify new ones.
 
         Args:
             session: Authenticated session
             courses: List of courses
-            announcements: Already scraped announcements for keyword detection
+            announcements: All scraped announcements for keyword detection
 
         Returns:
-            List of new exam detections
+            Tuple of (all detected exams, new exam detections)
         """
         detector = ExamDetector(session)
 
@@ -214,13 +238,73 @@ class SakaiMonitor:
                 new_exams.append(exam)
 
         logger.info(f"Exams: {len(all_exams)} total, " f"{len(new_exams)} new")
-        return new_exams
+        return all_exams, new_exams
+
+    def _process_resources(self, session: SakaiSession, courses: list) -> list[Resource]:
+        """
+        Scrape recently uploaded course resources and filter to new ones.
+
+        Never raises — a resources failure must not block the main pipeline.
+
+        Args:
+            session: Authenticated session
+            courses: List of courses to scrape
+
+        Returns:
+            List of new/updated resources
+        """
+        try:
+            scraper = ResourceScraper(session)
+            all_resources = scraper.scrape(courses)
+            self.stats["resources_found"] = len(all_resources)
+
+            new_resources = []
+            for resource in all_resources:
+                if not self.notification_store.has_been_sent(resource):
+                    new_resources.append(resource)
+
+            logger.info(f"Resources: {len(all_resources)} recent, " f"{len(new_resources)} new")
+            return new_resources
+        except Exception as e:
+            logger.error(f"Resource scraping failed: {e}")
+            self.stats["errors"] += 1
+            return []
+
+    def _send_reminders(self, assignments: list[Assignment], exams: list[Exam]) -> None:
+        """
+        Send deadline reminders for items approaching their due date.
+
+        Never raises — a reminder failure must not block the main pipeline.
+        """
+        try:
+            service = ReminderService(self.notification_store, self.telegram, self.formatter)
+            sent = service.send_reminders(assignments, exams)
+            self.stats["reminders_sent"] = sent
+            if sent:
+                logger.info(f"Sent {sent} deadline reminder(s)")
+        except Exception as e:
+            logger.error(f"Deadline reminders failed: {e}")
+            self.stats["errors"] += 1
+
+    def _maybe_send_digest(self, assignments: list[Assignment], exams: list[Exam]) -> None:
+        """
+        Send the weekly digest if we're in the Sunday-evening window.
+
+        Never raises — a digest failure must not block the main pipeline.
+        """
+        try:
+            service = DigestService(self.notification_store, self.telegram, self.formatter)
+            service.maybe_send(assignments, exams)
+        except Exception as e:
+            logger.error(f"Weekly digest failed: {e}")
+            self.stats["errors"] += 1
 
     def _send_notifications(
         self,
         announcements: list[Announcement],
         assignments: list[Assignment],
         exams: list[Exam],
+        resources: list[Resource] | None = None,
     ) -> None:
         """
         Send Telegram notifications for new items.
@@ -229,8 +313,10 @@ class SakaiMonitor:
             announcements: New announcements to notify
             assignments: New assignments to notify
             exams: New exams to notify
+            resources: New course resources to notify
         """
-        total_new = len(announcements) + len(assignments) + len(exams)
+        resources = resources or []
+        total_new = len(announcements) + len(assignments) + len(exams) + len(resources)
 
         if total_new == 0:
             logger.info("No new items to notify")
@@ -259,12 +345,20 @@ class SakaiMonitor:
                 self.formatter.format_exam(exam),
             )
 
+        # Send new course files
+        for resource in resources:
+            self._send_and_record(
+                resource,
+                self.formatter.format_resource(resource),
+            )
+
         # Send summary if multiple items
         if total_new > 1:
             summary = self.formatter.format_summary(
                 announcements_count=len(announcements),
                 assignments_count=len(assignments),
                 exams_count=len(exams),
+                resources_count=len(resources),
             )
             self.telegram.send_message(summary)
 
@@ -302,7 +396,9 @@ class SakaiMonitor:
         logger.info(f"Announcements found:  {self.stats['announcements_found']}")
         logger.info(f"Assignments found:    {self.stats['assignments_found']}")
         logger.info(f"Exams detected:       {self.stats['exams_found']}")
+        logger.info(f"Recent resources:     {self.stats['resources_found']}")
         logger.info(f"Notifications sent:   {self.stats['notifications_sent']}")
+        logger.info(f"Reminders sent:       {self.stats['reminders_sent']}")
         logger.info(f"Errors:               {self.stats['errors']}")
         logger.info("=" * 50)
 
