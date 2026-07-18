@@ -21,6 +21,8 @@ class NotificationType(str, Enum):
     ANNOUNCEMENT = "announcement"
     ASSIGNMENT = "assignment"
     EXAM = "exam"
+    RESOURCE = "resource"
+    DIGEST = "digest"
 
 
 class AssignmentStatus(str, Enum):
@@ -209,6 +211,65 @@ class Exam(BaseModel):
     @property
     def notification_type(self) -> NotificationType:
         return NotificationType.EXAM
+
+
+class Resource(BaseModel):
+    """
+    Represents a file in a course's Resources tool.
+
+    Attributes:
+        id: Unique resource identifier from Sakai
+        course_code: Code of the course this belongs to
+        course_title: Title of the course
+        title: File name / display name
+        container: Folder path within Resources (if any)
+        file_type: MIME type or extension
+        size_bytes: File size in bytes
+        modified_at: When the file was last modified/uploaded
+        author: Who uploaded the file
+        url: Direct link to the file
+    """
+
+    id: str
+    course_code: str
+    course_title: str
+    title: str
+    container: str | None = None
+    file_type: str | None = None
+    size_bytes: int | None = None
+    modified_at: datetime | None = None
+    author: str | None = None
+    url: str | None = None
+
+    @computed_field
+    @property
+    def dedup_key(self) -> str:
+        """Unique key for deduplication."""
+        return f"resource:{self.id}"
+
+    @computed_field
+    @property
+    def content_hash(self) -> str:
+        """Hash of content for change detection (re-uploads notify as updates)."""
+        content_str = f"{self.title}|{self.modified_at}|{self.size_bytes}"
+        return sha256(content_str.encode()).hexdigest()[:16]
+
+    @property
+    def notification_type(self) -> NotificationType:
+        return NotificationType.RESOURCE
+
+
+class SyntheticItem(BaseModel):
+    """
+    Stand-in dedup record for notifications not tied to a scraped entity,
+    such as deadline reminders and weekly digests.
+    """
+
+    dedup_key: str
+    content_hash: str
+    notification_type: NotificationType
+    title: str
+    course_code: str | None = None
 
 
 class SentNotification(BaseModel):
