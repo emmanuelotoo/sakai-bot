@@ -58,12 +58,35 @@ class Settings(BaseSettings):
         default=None,
         description="Only include courses at or above this level (e.g., 300 for 300-level). Matches the first digit of the course number.",
     )
+    reminder_hours: str = Field(
+        default="24,3",
+        description="Comma-separated hours before a due date to send deadline reminders.",
+    )
+    resource_lookback_days: int = Field(
+        default=7,
+        description="Only notify for course resources modified within this many days.",
+    )
+    digest_enabled: bool = Field(
+        default=True,
+        description="Send a weekly digest of upcoming deadlines on Sunday evenings.",
+    )
 
     @field_validator("sakai_base_url")
     @classmethod
     def validate_base_url(cls, v: str) -> str:
         """Ensure base URL doesn't have trailing slash."""
         return v.rstrip("/")
+
+    @field_validator("reminder_hours")
+    @classmethod
+    def validate_reminder_hours(cls, v: str) -> str:
+        """Ensure reminder hours parse to positive integers."""
+        hours = [part.strip() for part in v.split(",") if part.strip()]
+        if not hours or not all(part.isdigit() and int(part) > 0 for part in hours):
+            raise ValueError(
+                "reminder_hours must be comma-separated positive integers, e.g. '24,3'"
+            )
+        return v
 
     @field_validator("log_level")
     @classmethod
@@ -74,6 +97,12 @@ class Settings(BaseSettings):
         if upper not in valid_levels:
             raise ValueError(f"Log level must be one of: {valid_levels}")
         return upper
+
+    @property
+    def reminder_hours_list(self) -> list[int]:
+        """Reminder thresholds as integers, largest first."""
+        hours = {int(part.strip()) for part in self.reminder_hours.split(",") if part.strip()}
+        return sorted(hours, reverse=True)
 
     @property
     def sakai_login_url(self) -> str:
